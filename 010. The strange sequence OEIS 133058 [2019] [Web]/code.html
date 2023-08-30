@@ -1,0 +1,17 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML"></script>
+	</head>
+	<body>
+		<div id="container">
+			<canvas id="plot"></canvas>
+		</div>
+		<p>This is a plot of the first 1000 terms of OEIS sequence 133058. The x-axis, which ranges from 0 to 1000, is the the number of the term (e.g. the 5th term) and the y-axis, which ranges from 0 to 3000, is the value of the term (e.g. the 5th term has a value of 8). The rule for this strange sequence is:</p>
+		<p>$$a_\text{n}=\begin{cases}1,&\text{if}\ \text{n}=1\\a_{\text{n}-1}+\text{n}+1,&\text{if}\ \gcd{(a_{\text{n}-1},\ n)}=1\\\left(\dfrac{a_{\text{n}-1}}{\gcd{(a_{\text{n}-1},\ n)}}\right),&\text{if}\ \gcd{(a_{\text{n}-1},\ n)}>1\end{cases}$$</p>
+		<p>This sequence is very chaotic until term 638 at which point it stabilizes to form four straight lines (the bottom line is actually two parallel lines really close to each other).</p>
+	</body>
+</html>

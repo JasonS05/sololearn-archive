@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vshader" type="x-shader/x-vertex">
+attribute vec2 coordinates;
+varying vec2 texCoords;
+
+void main(void){
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="fshader" type="x-shader/x-fragment">
+varying highp vec2 texCoords;
+uniform sampler2D unfSampler;
+
+void main(void){
+	highp vec3 v = vec3(0, 0, 0);
+	
+	for (int i = -1; i < 2; i++) {
+		for (int j = -1; j < 2; j++) {
+			v -= texture2D(unfSampler, texCoords + vec2(i, j)/256.0).xyz;
+		}
+	}
+	
+	v += 9.0*texture2D(unfSampler, texCoords).xyz;
+	
+	gl_FragColor = vec4(v, 1.0);
+}
+		</script>
+	</head>
+	<body>
+		<p>original video:</p>
+		<video id="vid" crossorigin="anonymous" src="https://raw.githubusercontent.com/JasonS05/hello-world/main/vid.mp4" controls="true"></video>
+		<p>filtered video:</p>
+		<canvas id="can"></canvas>
+		<p>The filter here detects edges. Where there are edges is white, where there are no edges is black.</p>
+	</body>
+</html>

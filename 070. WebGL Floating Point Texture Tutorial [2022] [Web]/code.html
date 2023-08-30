@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+	</head>
+	<body>
+		<p>
+			In this tutorial I will be going over how to use WebGL
+			floating point textures. I will be assuming you already
+			know how to use WebGL and WebGL textures.
+		</p>
+		<p>
+			Floating point textures are just like ordinary textures,
+			but instead of having a byte for each color channel
+			holding an integer value in the range 0 - 255 (normalized
+			to the range 0.0 - 1.0 from the shader's perspective), it
+			holds a 32 bit floating point number in each color
+			channel. This number is not normalized for the shaders
+			meaning it can retrieve and store any number to and from
+			the texture that can be represented by a 32 bit float. As
+			you may imagine, this is incredibly valuable for programs
+			that use WebGL to perform simulations involving large
+			arrays of numbers. Being limited to not only the range
+			0.0 - 1.0, but also only being able to use only 255
+			distinct values in that range is crippling for many
+			simulations, so floating point textures are incredibly
+			valuable for this purpose. Unfortunately, when I tried
+			to use them, I found that they simply refused to work and
+			for a very long time I was unable to use them. Finally I
+			eventually found what the problem was and I can now use
+			them without issue. Because the solution was so simple,
+			yet so non-obvious, I am making this tutorial. And also
+			because SoloLearn user Mike Perkowski requested it.
+		</p>
+		<p>
+			When a shader reads from a texture, the GPU can see how
+			far apart the points are that the fragment shader is
+			reading from. Basically, if you have a 100x100 texture,
+			and you render it to a 50x50 region on the canvas, it can
+			see that the the shader is reading the texture at 1/2
+			scale. In order to improve the appearance of textures
+			rendered at a size different from the size of the
+			texture, it uses minification and magnification
+			filters. By default, these are set to be linear
+			filters. But there's a problem with that. Linear
+			filtering isn't supported by default for float textures.
+			And as a result, if you try to use floating point
+			textures, it will fail mysteriously. Specifically, any
+			read will return vec4(0.0, 0.0, 0.0, 1.0) regardless of
+			the value actually stored within. This can be fixed in
+			two ways. The first is to use the
+			OES_texture_float_linear extension which isn't gaurenteed
+			to be supported, so I prefer to avoid this if possible.
+			The second option is to ditch linear filtering and
+			manually specify nearest filtering. Really, it should
+			just default to nearest for floating point textures if
+			OES_texture_float_linear isn't enabled, but it doesn't,
+			so we have to manually specify it. The code for that
+			looks like this:
+		</p>
+		<pre>
+let tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 128, 128, 0, gl.RGBA, gl.FLOAT, null);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);</pre>
+		<p>
+			This creates a blank floating point texture with
+			dimensions 128x128 and nearest filtering. Also, this
+			assumes you are using WebGL2. If not, then you
+			additionally need to include this code immediately
+			after you create the WebGL context:
+		</p>
+		<pre>
+let ext = gl.getExtension("OES_texture_float");
+if (!ext) {
+	console.log("OES_texture_float not supported");
+}</pre>
+	<p>
+		And also replace gl.RGBA32F with gl.RGBA because WebGL1
+		doesn't have gl.RGBA32F, so it instead just infers it based
+		on your use of gl.FLOAT combined with gl.RGBA.
+	</p>
+	<p>
+		If you additionally want to be able to render to floating
+		point textures with a framebuffer, you need to enable the
+		EXT_color_buffer_float extension for WebGL2, or the
+		WEBGL_color_buffer_float extension for WebGL1. The code for
+		WebGL2 thus looks like:
+	</p>
+		<pre>
+let ext = gl.getExtension("EXT_color_buffer_float");
+if (!ext) {
+	console.log("EXT_color_buffer_float not supported");
+}</pre>
+	<p>
+		And for WebGL1:
+	</p>
+	<pre>
+let ext = gl.getExtension("OES_texture_float");
+if (!ext) {
+	console.log("OES_texture_float not supported");
+}
+
+ext = gl.getExtension("WEBGL_color_buffer_float");
+if (!ext) {
+	console.log("WEBGL_color_buffer_float not supported");
+}</pre>
+	</body>
+ </html>

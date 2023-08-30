@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec2 coordinates;
+
+out vec2 texCoords;
+
+void main() {
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+const int iter = 100;
+const float dt = 0.01;
+const float n = 1.0;
+
+const float diffusionConst = 0.05;
+const float ru = 1.0;
+const float rv = 0.5;
+const float k = 0.05;
+const float f = 0.021;
+
+float rand(vec2 co){
+	return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float hypot(vec2 a) {
+	return sqrt(a.x * a.x + a.y * a.y);
+}
+
+float gaussian(float x) {
+	return 0.39894228 * exp(-x * x / 2.0);
+}
+
+void main() {
+	float diffusion = float(iter) * texSize * texSize * diffusionConst / 1048576.0; // 1048576 = 1024 ^ 2
+	highp vec3 v = vec3(0.0);
+	highp vec2 sum = vec2(0.0);
+
+	// dunno why i and j have to be float but for some reason it complains if it's an int even though it's being assigned the result of floor()
+	for (float i = -1.0 + floor(-3.0 * sqrt(diffusion * max(ru, rv))); i <= 2.0 + floor(3.0 * sqrt(diffusion * max(ru, rv))); i++) {
+		for (float j = -1.0 + floor(-3.0 * sqrt(diffusion * max(ru, rv))); j <= 2.0 + floor(3.0 * sqrt(diffusion * max(ru, rv))); j++) {
+			float dist = hypot(vec2(i, j));
+
+			vec2 g = dist / sqrt(diffusion * vec2(ru, rv));
+			g = vec2(gaussian(g.x), gaussian(g.y));
+			
+			sum += g;
+			v += texture(sampler, texCoords + vec2(i, j)/texSize).xyz * vec3(g, 1.0);
+		}
+	}
+	
+	v.xy /= sum;
+
+	//if (texCoords.x < 0.01 || texCoords.x > 0.99 || texCoords.y < 0.01 || texCoords.y > 0.99) v = vec3(1.0, 1.0, 1.0);
+	
+	v *= n;
+	
+	float U = v.x;
+	float V = v.y;
+	float P = v.z;
+	
+	for (int i = 0; i < iter; i++) {
+		float dU = -U*V*V + f*(1.0 - U);
+		float dV = U*V*V - (f + k) * V;
+		
+		float rU = 0.0;
+		float rV = 0.0;
+
+		if (P == 0.0) {
+			if (texCoords.x < 0.501 && texCoords.y < 0.501 && texCoords.x > 0.499 && texCoords.y > 0.499) {
+				rV = 1.0;
+				rU = 1.0;
+			} else {
+				rV = 0.0;
+				rU = 1.0;
+			}
+
+			P = 1.0;
+		}
+		
+		U += dU * dt + rU;
+		V += dV * dt + rV;
+	}
+	
+	v = vec3(U, V, 0.0) / n + vec3(0, 0, 1.0/256.0);
+	
+	FragColor = vec4(v, 1.0);
+}
+		</script>
+	</head>
+	<body>
+	
+	</body>
+</html>

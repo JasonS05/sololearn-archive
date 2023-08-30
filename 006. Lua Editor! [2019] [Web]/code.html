@@ -1,0 +1,31 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
+	</head>
+	<body>
+		<div class="container">
+			<input type="button" id="format" value="FIX SPECIAL CHARACTERS"/>
+			<input type="button" id="run" value="RUN"/>
+			<br/>
+			<textarea id="program" autocapitalize="off">print("Hello, World!")</textarea>
+			<br/>
+			<code id="output"></code>
+		</div>
+		<p>This can run Lua programs. All you have to do is write your program in the box above and press the &#8220RUN&#8221 button to run it. The standard <code>print</code> function as defined by the script that runs the Lua writes to the javascript console, so I had to redefine it. There was also no <code>io.write</code> function. In fact, there was no <code>io</code> library at all! So I had to define <code>io</code> to be a table with the <code>write</code> function as its only element so you could use <code>io.write</code>.</p>
+		
+		<p>&#8220FIX SPECIAL CHARACTERS&#8221 turns smart quotes (&#8216quote&#8217 &#8220quote&#8221) into regular quotes ('quote' "quote") and dashes (&#8212) into double hyphens (--) and bullets (&#8226) into asterisks (*).</p>
+		
+		<p>Feel free to copy this code but with <code>print("Hello, World!")</code> replaced with your program to post Lua programs. Just make sure to give me credit!</p>
+		
+		<p>My to-do list:
+			<ul>
+				<li>Auto-indent</li>
+				<li><code>io.read</code></li>
+			</ul>
+		</p>
+	</body>
+</html>

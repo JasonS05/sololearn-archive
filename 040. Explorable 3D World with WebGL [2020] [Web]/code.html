@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		
+		<!-- the two shader programs -->
+		<script id="shader-vs" type="x-shader/x-fragment">
+attribute vec4 coordinates;
+attribute vec4 vertexColor;
+
+uniform float aspectRatio;
+uniform vec4 cameraPosition;
+uniform vec4 cameraRotation;
+uniform float FOV;
+uniform float minDist;
+uniform float maxDist;
+
+varying vec4 fragmentColor;
+
+vec4 quatMult(vec4 a, vec4 b) {
+	return vec4(
+		a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+		a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+		a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
+		a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z
+	);
+}
+
+vec4 quatInv(vec4 quat) {
+	return vec4(-1.0 * quat.xyz, quat.w);
+}
+
+vec4 quatRotate(vec4 rotation, vec4 vertex) {
+	return quatMult(quatMult(rotation, vertex), quatInv(rotation));
+}
+
+vec4 perspective(vec4 vertex) {
+	vertex -= cameraPosition;
+	vertex = quatRotate(cameraRotation, vertex);
+	vertex.w = vertex.z * tan(FOV / 2.0);
+	vertex.z -= (maxDist + minDist) / 2.0;
+	vertex.z /= (maxDist - minDist) / 2.0;
+	vertex.x /= aspectRatio;
+	return vertex;
+}
+
+void main() {
+	fragmentColor = vertexColor;
+	gl_Position = perspective(coordinates);
+}
+		</script>
+		<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 fragmentColor;
+
+void main() {
+	gl_FragColor = fragmentColor;
+}
+		</script>
+		
+		<!-- my personal little webgl library -->
+		<script>
+function createBuffers(gl) {
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+}
+
+function supplyBufferData(gl, vertices, indices, drawMode) {
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), drawMode);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), drawMode);
+}
+
+function createShaderProgram(gl, vertexShaderCode, fragmentShaderCode) {
+	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+	
+	gl.shaderSource(vertexShader, vertexShaderCode);
+	gl.shaderSource(fragmentShader, fragmentShaderCode);
+	
+	gl.compileShader(vertexShader);
+	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+		console.log("Vertex Shader: \n" + gl.getShaderInfoLog(vertexShader) + "\n");
+	}
+	
+	gl.compileShader(fragmentShader);
+	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+		console.log("Fragment Shader: \n" + gl.getShaderInfoLog(fragmentShader) + "\n");
+	}
+	
+	const shaderProgram = gl.createProgram();
+	gl.attachShader(shaderProgram, vertexShader);
+	gl.attachShader(shaderProgram, fragmentShader);
+	gl.linkProgram(shaderProgram);
+	
+	if (gl.getProgramInfoLog(shaderProgram).length > 0) {
+		console.log(gl.getProgramInfoLog(shaderProgram));
+	}
+	
+	gl.useProgram(shaderProgram);
+	
+	return shaderProgram
+}
+
+function fill(gl, r, g, b, a) {
+	gl.clearColor(r, g, b, a);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+function supplyAttributeData(gl, shaderProgram, attributeName, componentsForThisAttribute, componentsPerVertex, offset) {
+	const attribute = gl.getAttribLocation(shaderProgram, attributeName);
+	gl.vertexAttribPointer(attribute, componentsForThisAttribute, gl.FLOAT, false, componentsPerVertex * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+	gl.enableVertexAttribArray(attribute);
+}
+		</script>
+		
+		<!-- credit to Mike Perkowski for this joystick code -->
+		<script>
+function Joystick(opts) {
+	opts = opts || {};
+	
+	this.x = 0; 
+	this.y = 0;
+	this.isPressed = false;
+	
+	var elem = document.createElement("div");
+	
+	elem.style.position = "fixed";
+	elem.style.margin  = "auto";
+	elem.style.background = "rgba(0,0,0,0.1)";
+	elem.style.boxShadow = "2px 3px 5px rgba(0,0,0,0.25)";
+	elem.style.borderRadius = "5px";
+	elem.style.zIndex = "100";
+	elem.style.width = opts.width || "100px";
+	elem.style.height = opts.height || "100px";
+	elem.style.top = opts.top || "auto";
+	elem.style.bottom = opts.bottom || "10px";
+	elem.style.left = opts.left || "0";
+	elem.style.right = opts.right || "0";
+	
+	document.body.appendChild(elem);
+	
+	var rect = elem.getBoundingClientRect();
+	
+	var stick = document.createElement("div");
+	
+	if (rect.width <= rect.height){
+		stick.style.width = Math.round(0.8 * rect.width) + "px";
+		stick.style.height = Math.round(0.8 * rect.width) + "px";
+	} else {
+		stick.style.width = Math.round(0.8 * rect.height) + "px";
+		stick.style.height = Math.round(0.8 * rect.height) + "px";
+	}
+	
+	stick.style.borderRadius = "50%";
+	stick.style.background = "rgba(0,0,0,0.5)";
+	
+	stick.style.boxShadow = "2px 3px 5px rgba(0,0,0,0.45), inset 5px 5px 15px lightgray, inset -5px -5px 15px rgba(0,0,0,0.75)";
+	
+	stick.style.margin = "auto"
+	stick.style.position = "fixed";
+	stick.style.top = Math.round(rect.top + (0.1 * rect.height)) + "px";
+	stick.style.bottom = "auto";
+	stick.style.left = Math.round(rect.left + (0.1 * rect.width)) + "px";
+	stick.style.right = "auto";
+	stick.style.zIndex = "12";
+	
+	elem.appendChild(stick);
+	
+	var srect = stick.getBoundingClientRect();
+	
+	elem.addEventListener("touchstart", e => {
+		e.preventDefault();
+		
+		stick.style.top = Math.round(Math.min(Math.max(e.targetTouches[0].clientY, rect.top), rect.bottom) - (srect.height/2)) + "px";
+		stick.style.left = Math.round(Math.min(Math.max(e.targetTouches[0].clientX, rect.left), rect.right) - (srect.width/2)) + "px";
+		
+		var tempX = (e.targetTouches[0].clientX - rect.left - (rect.width/2))/(rect.width/2);
+		var tempY = (e.targetTouches[0].clientY - rect.top - (rect.height/2))/(rect.height/2);
+		
+		this.x = (opts.limitX && Math.abs(tempX) > opts.limitX)? Math.sign(tempX) * opts.limitX : tempX;
+		this.y = (opts.limitY && Math.abs(tempY) > opts.limitY)? Math.sign(tempY) * opts.limitY : tempY;
+		this.isPressed = true;
+		
+		if (opts.cbStart) opts.cbStart();
+	}, false);
+	
+	elem.addEventListener("touchmove", e => {
+		e.preventDefault();
+		
+		stick.style.top = Math.round(Math.min(Math.max(e.targetTouches[0].clientY, rect.top), rect.bottom) - (srect.height/2)) + "px";
+		stick.style.left = Math.round(Math.min(Math.max(e.targetTouches[0].clientX, rect.left), rect.right) - (srect.width/2)) + "px";
+		
+		var tempX = (e.targetTouches[0].clientX - rect.left - (rect.width/2))/(rect.width/2);
+		var tempY = (e.targetTouches[0].clientY - rect.top - (rect.height/2))/(rect.height/2);
+		
+		this.x = (opts.limitX && Math.abs(tempX) > opts.limitX)? Math.sign(tempX) * opts.limitX : tempX;
+		this.y = (opts.limitY && Math.abs(tempY) > opts.limitY)? Math.sign(tempY) * opts.limitY : tempY;
+		
+		if (opts.cbMove) opts.cbMove();
+	}, false);
+	
+	elem.addEventListener("touchend", e => {
+		e.preventDefault();
+		
+		stick.style.top = Math.round(rect.top + (0.1*rect.height)) + "px";
+		stick.style.left = Math.round(rect.left + (0.1*rect.width)) + "px";
+		
+		this.isPressed = false;
+		this.x = 0;
+		this.y = 0;
+		
+		if (opts.cbEnd) opts.cbEnd();
+	}, false);
+}
+		</script>
+	</head>
+	<body>
+		<canvas id="can"></canvas>
+		<span id="coords">If this message persists after waiting a few seconds, then the JS is not working.</span>
+	</body>
+</html>

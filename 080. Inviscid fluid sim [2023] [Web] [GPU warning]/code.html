@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+in vec2 coordinates;
+
+out vec2 texCoords;
+
+void main() {
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="initFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+vec2 getPixelCoords(vec2 texCoords) {
+	return texCoords * texSize - 0.5;
+}
+
+vec2 getTexCoords(vec2 pixelCoords) {
+	return (pixelCoords + 0.5) / texSize;
+}
+
+vec4 getPixel(vec2 pixelCoords) {
+	return texture(sampler, getTexCoords(pixelCoords));
+}
+
+float hypot(vec2 v) {
+	return sqrt(v.x * v.x + v.y * v.y);
+}
+
+float sum(vec2 v) {
+	return v.x + v.y;
+}
+
+float square(float x) {
+	return x * x;
+}
+
+float random(vec2 coords) {
+	return fract(sin(coords) * (1.0 + sqrt(5.0)) * 50.0).x;
+}
+
+float equilibriumVelocityDistribution(vec2 averageVelocity, vec2 velocity) {
+	return
+		  1.0
+		+ 3.0 * sum(velocity * averageVelocity)
+		+ 9.0 / 2.0 * square(sum(velocity * averageVelocity))
+		- 3.0 / 2.0 * sum(averageVelocity * averageVelocity);
+}
+
+void main() {
+	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+	
+	ivec2 pixelCoords = ivec2(getPixelCoords(texCoords) + 0.5);
+	ivec2 centerPixelCoords = pixelCoords - pixelCoords % 3 + 1;
+	
+	int direction = pixelCoords.x % 3 + (pixelCoords.y % 3) * 3;
+	
+	vec2[9] velocity = vec2[](
+		vec2(-1.0, -1.0),
+		vec2( 0.0, -1.0),
+		vec2( 1.0, -1.0),
+		vec2(-1.0,  0.0),
+		vec2( 0.0,  0.0),
+		vec2( 1.0,  0.0),
+		vec2(-1.0,  1.0),
+		vec2( 0.0,  1.0),
+		vec2( 1.0,  1.0)
+	);
+	
+	float[9] weights = float[](
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		4.0 /  9.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0
+	);
+	
+	float speed = 0.03/* * (0.5 - 0.5 * cos(texCoords.y * 3.1415926 * 2.0));*/ /* * (1.0 - square(1.0 - 2.0 * texCoords.y))*/;
+	
+	if (
+		centerPixelCoords.y == 1 ||
+		centerPixelCoords.y == int(texSize) - 2 ||
+		centerPixelCoords.x == 1 ||
+		centerPixelCoords.x == int(texSize) - 2 ||
+		//abs(centerPixelCoords.x - int(texSize * 0.3)) < 200 &&
+		//abs(centerPixelCoords.y - int(texSize * 0.5)) < 200
+		hypot(vec2(centerPixelCoords) - texSize * vec2(0.3, 0.5)) < 200.0
+	) {
+		color = vec4(0.0, 1.0, 0.0, 0.0);
+	} else if (centerPixelCoords.x == 4) {
+		color = vec4(1.0, 2.0, speed, 0.0);
+	} else if (centerPixelCoords.x == int(texSize) - 5) {
+		color = vec4(1.0 * (1.0 - 3.0 * speed), 3.0, 0.0, 0.0);
+	} else {
+		color = vec4(weights[direction] * 1.0 * equilibriumVelocityDistribution(vec2(2.0 * speed, 0.0), velocity[direction]), 0.0, 0.0, 0.0);
+	}
+	
+	FragColor = color;
+}
+		</script>
+		<script id="compFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+vec4 getPixel(vec2 pixelCoords) {
+	/*if (pixelCoords.x < 0.0 || pixelCoords.y < 0.0 || pixelCoords.x > texSize - 1.0 || pixelCoords.y > texSize - 1.0) {
+		return vec4(0.0, 1.0, 0.0, 0.0);
+	}*/
+	
+	return texture(sampler, (pixelCoords + 0.5) / texSize);
+}
+
+vec2 getPixelCoords(vec2 texCoords) {
+	return texCoords * texSize - 0.5;
+}
+
+float sum(vec2 v) {
+	return v.x + v.y;
+}
+
+float square(float x) {
+	return x * x;
+}
+
+float equilibriumVelocityDistribution(vec2 averageVelocity, vec2 velocity) {
+	return
+		  1.0
+		+ 3.0 * sum(velocity * averageVelocity)
+		+ 9.0 / 2.0 * square(sum(velocity * averageVelocity))
+		- 3.0 / 2.0 * sum(averageVelocity * averageVelocity);
+	//return 1.0 + dot(velocity, averageVelocity);
+}
+
+float H(float x, float weight) {
+	return x * log(x / weight);
+}
+
+float H_derivative(float x, float weight) {
+	return log(x / weight) + 1.0;
+}
+
+float H_second_derivative(float x, float weight) {
+	return 1.0 / x;
+}
+
+float array_dot(float[9] array1, float[9] array2) {
+	float result = 0.0;
+	
+	for (int i = 0; i < 9; i++) {
+		result += array1[i] * array2[i];
+	}
+	
+	return result;
+}
+
+float[9] multiply(float[9] array, float scalar) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array[i] * scalar;
+	}
+	
+	return result;
+}
+
+float[9] multiply(float[9] array1, float[9] array2) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array1[i] * array2[i];
+	}
+	
+	return result;
+}
+
+float[9] divide(float[9] array1, float[9] array2) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array1[i] / array2[i];
+	}
+	
+	return result;
+}
+
+float[9] divide(float[9] array, float scalar) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array[i] / scalar;
+	}
+	
+	return result;
+}
+
+float[9] add(float[9] array1, float[9] array2) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array1[i] + array2[i];
+	}
+	
+	return result;
+}
+
+float[9] subtract(float[9] array1, float[9] array2) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = array1[i] - array2[i];
+	}
+	
+	return result;
+}
+
+float array_max(float[9] array) {
+	float result = array[0];
+	
+	for (int i = 1; i < 9; i++) {
+		result = max(result, array[i]);
+	}
+	
+	return result;
+}
+
+float[9] array_mix(float[9] array1, float[9] array2, float scalar) {
+	float[9] result;
+	
+	for (int i = 0; i < 9; i++) {
+		result[i] = mix(array1[i], array2[i], scalar);
+	}
+	
+	return result;
+}
+
+float magnitude(float[9] array) {
+	float result = 0.0;
+	
+	for (int i = 0; i < 9; i++) {
+		result += array[i] * array[i];
+	}
+	
+	return sqrt(result);
+}
+
+float[9] apply_conservation_rules(float[9] vector) {
+	float[9] b00 = float[](
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] b10 = float[](
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] b01 = float[](
+		-1.0, -1.0, -1.0,
+		 0.0,  0.0,  0.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] b_energy = float[](
+		 2.0, -1.0,  2.0,
+		-1.0, -4.0, -1.0,
+		 2.0, -1.0,  2.0
+	);
+	
+	float b00_ = array_dot(vector, b00);
+	float b01_ = array_dot(vector, b01);
+	float b10_ = array_dot(vector, b10);
+	float b_energy_ = array_dot(vector, b_energy);
+	
+	vector = subtract(vector, multiply(b00, b00_ / 9.0)); // array_dot(b00, b00) == 9.0
+	vector = subtract(vector, multiply(b01, b01_ / 6.0)); // array_dot(b01, b01) == 6.0
+	vector = subtract(vector, multiply(b10, b10_ / 6.0)); // array_dot(b10, b10) == 6.0
+	//vector = subtract(vector, multiply(b_energy, b_energy_ / 36.0));
+	
+	return vector;
+}
+
+float[9] apply_enhanced_conservation_rules(float[9] vector) {
+	float[9] b00 = float[](
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] b01 = float[](
+		-1.0, -1.0, -1.0,
+		 0.0,  0.0,  0.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] b02 = float[](
+		 1.0,  1.0,  1.0,
+		-2.0, -2.0, -2.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] b10 = float[](
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] b11 = float[](
+		 1.0,  0.0, -1.0,
+		 0.0,  0.0,  0.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] b12 = float[](
+		-1.0,  0.0,  1.0,
+		 2.0,  0.0, -2.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] b20 = float[](
+		 1.0, -2.0,  1.0,
+		 1.0, -2.0,  1.0,
+		 1.0, -2.0,  1.0
+	);
+	
+	float[9] b21 = float[](
+		-1.0,  2.0, -1.0,
+		 0.0,  0.0,  0.0,
+		 1.0, -2.0,  1.0
+	);
+	
+	float[9] b22 = float[](
+		 1.0, -2.0,  1.0,
+		-2.0,  4.0, -2.0,
+		 1.0, -2.0,  1.0
+	);
+	
+	float[9] b_2 = float[](
+		 0.0, -1.0,  0.0,
+		 1.0,  0.0,  1.0,
+		 0.0, -1.0,  0.0
+	);
+	
+	float b00_ = array_dot(vector, b00);
+	float b01_ = array_dot(vector, b01);
+	float b02_ = array_dot(vector, b02);
+	float b10_ = array_dot(vector, b10);
+	float b11_ = array_dot(vector, b11);
+	float b12_ = array_dot(vector, b12);
+	float b20_ = array_dot(vector, b20);
+	float b21_ = array_dot(vector, b21);
+	float b22_ = array_dot(vector, b22);
+	float b_2_ = array_dot(vector, b_2);
+	
+	//vector = float[9](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+	
+	  vector = subtract(vector, multiply(b00, b00_ / array_dot(b00, b00)));
+	  vector = subtract(vector, multiply(b01, b01_ / array_dot(b01, b01)));
+	//vector = subtract(vector, multiply(b02, b02_ / array_dot(b02, b02)));
+	  vector = subtract(vector, multiply(b10, b10_ / array_dot(b10, b10)));
+	  vector = subtract(vector, multiply(b11, b11_ / array_dot(b11, b11)));
+	//vector = subtract(vector, multiply(b12, b12_ / array_dot(b12, b12)));
+	//vector = subtract(vector, multiply(b20, b20_ / array_dot(b20, b20)));
+	//vector = subtract(vector, multiply(b21, b21_ / array_dot(b21, b21)));
+	//vector = subtract(vector, multiply(b22, b22_ / array_dot(b22, b22)));
+	  vector = subtract(vector, multiply(b_2, b_2_ / array_dot(b_2, b_2)));
+	
+	return vector;
+}
+
+float[9] equilibrate(float[9] equilibriumParticleQuantity) {
+	float[9] weights = float[](
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		4.0 /  9.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0
+	);
+	
+	float[9] originalEquilibriumParticleQuantity = equilibriumParticleQuantity;
+	
+	// multidemsional newton-raphson method applied to the derivative of a function to find
+	// the maximum. In other words: pain. And also: don't touch it, it'll probably break.
+	for (int i = 0; i < 20; i++) {
+		float[9] derivative;
+		
+		for (int i = 0; i < 9; i++) {
+			derivative[i] = H_derivative(equilibriumParticleQuantity[i], weights[i]);
+		}
+		
+		float[9] second_derivative;
+		
+		for (int i = 0; i < 9; i++) {
+			second_derivative[i] = H_second_derivative(equilibriumParticleQuantity[i], weights[i]);
+		}
+		
+		derivative = apply_conservation_rules(derivative);
+		float[9] direction = divide(derivative, magnitude(derivative));
+		float x = array_dot(multiply(direction, second_derivative), direction);
+		equilibriumParticleQuantity = subtract(equilibriumParticleQuantity, divide(derivative, x));
+	}
+	
+	return equilibriumParticleQuantity;
+}
+
+float[9] enhanced_equilibrate(float[9] equilibriumParticleQuantity) {
+	float[9] weights = float[](
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		4.0 /  9.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0
+	);
+	
+	float[9] originalEquilibriumParticleQuantity = equilibriumParticleQuantity;
+	
+	// only 5 iterations are used here because accuracy isn't important in the place
+	// where it's being used
+	for (int i = 0; i < 5; i++) {
+		float[9] derivative;
+		
+		for (int i = 0; i < 9; i++) {
+			derivative[i] = H_derivative(equilibriumParticleQuantity[i], weights[i]);
+		}
+		
+		derivative = apply_enhanced_conservation_rules(derivative);
+		float derivativeMagnitude = magnitude(derivative);
+		if (derivativeMagnitude == 0.0) break;
+		
+		float[9] second_derivative;
+		
+		for (int i = 0; i < 9; i++) {
+			second_derivative[i] = H_second_derivative(equilibriumParticleQuantity[i], weights[i]);
+		}
+		
+		float[9] direction = divide(derivative, derivativeMagnitude);
+		float x = array_dot(multiply(direction, second_derivative), direction);
+		equilibriumParticleQuantity = subtract(equilibriumParticleQuantity, divide(derivative, x));
+	}
+	
+	return equilibriumParticleQuantity;
+}
+
+/*float[9] better_equilibriumVelocityDistribution(vec2 averageVelocity, float mass) {
+	vec2[9] velocity = vec2[](
+		vec2(-1.0, -1.0),
+		vec2( 0.0, -1.0),
+		vec2( 1.0, -1.0),
+		vec2(-1.0,  0.0),
+		vec2( 0.0,  0.0),
+		vec2( 1.0,  0.0),
+		vec2(-1.0,  1.0),
+		vec2( 0.0,  1.0),
+		vec2( 1.0,  1.0)
+	);
+
+	float[9] weights = float[](
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		4.0 /  9.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0
+	);
+	
+	float[9] equilibriumParticleQuantity;
+	
+	for (int i = 0; i < 9; i++) {
+		equilibriumParticleQuantity[i] = equilibriumVelocityDistribution(averageVelocity, velocity[i]) * mass * weights[i];
+	}
+	
+	return equilibrate(equilibriumParticleQuantity);
+}*/
+
+float[9] better_equilibriumVelocityDistribution(vec2 averageVelocity, float totalParticles) {
+	float[9] weights = float[](
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		4.0 /  9.0,
+		1.0 /  9.0,
+		1.0 / 36.0,
+		1.0 /  9.0,
+		1.0 / 36.0
+	);
+	
+	averageVelocity.x = clamp(averageVelocity.x, -0.999, 0.999);
+	averageVelocity.y = clamp(averageVelocity.y, -0.999, 0.999);
+	
+	vec2 sqr = averageVelocity * averageVelocity;
+	
+	float xRatioIntermediate = (-2.0 * sqr.x - sqrt(3.0 * sqr.x + 1.0)) / (sqr.x - 1.0);
+	float yRatioIntermediate = (-2.0 * sqr.y - sqrt(3.0 * sqr.y + 1.0)) / (sqr.y - 1.0);
+	
+	float xRatio = xRatioIntermediate + sqrt(xRatioIntermediate * xRatioIntermediate - 1.0);
+	float yRatio = yRatioIntermediate + sqrt(yRatioIntermediate * yRatioIntermediate - 1.0);
+	
+	float xRatioInv = 1.0 / xRatio;
+	float yRatioInv = 1.0 / yRatio;
+	
+	if (averageVelocity.x < 0.0) {
+		float temp = xRatio;
+		xRatio = xRatioInv;
+		xRatioInv = temp;
+	}
+	
+	if (averageVelocity.y < 0.0) {
+		float temp = yRatio;
+		yRatio = yRatioInv;
+		yRatioInv = temp;
+	}
+	
+	float[9] distribution = float[](
+		xRatioInv * yRatioInv * weights[0],
+		1.0       * yRatioInv * weights[1],
+		xRatio    * yRatioInv * weights[2],
+		xRatioInv * 1.0       * weights[3],
+		1.0       * 1.0       * weights[4],
+		xRatio    * 1.0       * weights[5],
+		xRatioInv * yRatio    * weights[6],
+		1.0       * yRatio    * weights[7],
+		xRatio    * yRatio    * weights[8]
+	);
+	
+	float sum = array_dot(distribution, float[9](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0));
+	
+	return multiply(distribution, totalParticles / sum);
+}
+
+float[9] isolateViscousComponents(float[9] vector) {
+	/*float[9] mass = float[](
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0,
+		 1.0,  1.0,  1.0
+	);
+	
+	float[9] xMomentum = float[](
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] yMomentum = float[](
+		-1.0, -1.0, -1.0,
+		 0.0,  0.0,  0.0,
+		 1.0,  1.0,  1.0
+	);*/
+	
+	float[9] visc1 = float[](
+		 1.0,  0.0, -1.0,
+		 0.0,  0.0,  0.0,
+		-1.0,  0.0,  1.0
+	);
+	
+	float[9] visc2 = float[](
+		 0.0,  1.0,  0.0,
+		-1.0,  0.0, -1.0,
+		 0.0,  1.0,  0.0
+	);
+	
+	//vector = float[9](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+	
+	/*float mass_      = array_dot(vector, mass     );
+	float xMomentum_ = array_dot(vector, xMomentum);
+	float yMomentum_ = array_dot(vector, yMomentum);*/
+	float visc1_     = array_dot(vector, visc1    );
+	float visc2_     = array_dot(vector, visc2    );
+	
+	/*vector = add(vector, multiply(mass,      mass_      / array_dot(mass,      mass     )));
+	vector = add(vector, multiply(xMomentum, xMomentum_ / array_dot(xMomentum, xMomentum)));
+	vector = add(vector, multiply(yMomentum, yMomentum_ / array_dot(yMomentum, yMomentum)));*/
+	vector = add(vector, multiply(visc1,     visc1_     / array_dot(visc1,     visc1    )));
+	vector = add(vector, multiply(visc2,     visc2_     / array_dot(visc2,     visc2    )));
+	
+	return vector;
+}
+
+void main() {
+	vec2 pixelCoords = getPixelCoords(texCoords);
+	vec4 pixel = getPixel(pixelCoords);
+	
+	vec2 centerPixelCoords = pixelCoords - vec2(ivec2(pixelCoords + 0.5) % 3 - 1);
+	vec4 centerPixel = getPixel(centerPixelCoords);
+	
+	vec4 color;
+	
+	if (centerPixel.g == 0.0) {
+		vec2[9] velocity = vec2[](
+			vec2(-1.0, -1.0),
+			vec2( 0.0, -1.0),
+			vec2( 1.0, -1.0),
+			vec2(-1.0,  0.0),
+			vec2( 0.0,  0.0),
+			vec2( 1.0,  0.0),
+			vec2(-1.0,  1.0),
+			vec2( 0.0,  1.0),
+			vec2( 1.0,  1.0)
+		);
+		
+		float[9] weights = float[](
+			1.0 / 36.0,
+			1.0 /  9.0,
+			1.0 / 36.0,
+			1.0 /  9.0,
+			4.0 /  9.0,
+			1.0 /  9.0,
+			1.0 / 36.0,
+			1.0 /  9.0,
+			1.0 / 36.0
+		);
+		
+		float[9] particleQuantity;
+		
+		for (int i = 0; i < 9; i++) {
+			particleQuantity[i] = getPixel(centerPixelCoords + velocity[i]).r;
+		}
+		
+		float currentTotalParticles = 0.0;
+		
+		for (int i = 0; i < 9; i++) {
+			currentTotalParticles += particleQuantity[i];
+		}
+		
+		vec2 currentAverageVelocity = vec2(0.0);
+		
+		if (currentTotalParticles != 0.0) {
+			for (int i = 0; i < 9; i++) {
+				currentAverageVelocity += particleQuantity[i] / currentTotalParticles * velocity[i];
+			}
+		}
+		
+		for (int i = 0; i < 9; i++) {
+			vec4 neighbor = getPixel(centerPixelCoords + velocity[i] * -3.0);
+			
+			if (neighbor.g == 1.0) {
+				particleQuantity[i] = getPixel(centerPixelCoords + velocity[i] * -1.0).r;
+			} else if (neighbor.g == 2.0) {
+				particleQuantity[i] = better_equilibriumVelocityDistribution(currentAverageVelocity * 0.5 + neighbor.ba, neighbor.r)[i];
+			} else if (neighbor.g == 3.0) {
+				particleQuantity[i] = better_equilibriumVelocityDistribution(currentAverageVelocity * 0.5, neighbor.r)[i];
+			} else {
+				particleQuantity[i] = getPixel(centerPixelCoords + velocity[i] * -2.0).r;
+			}
+			
+			if (centerPixel.g == 2.0) {
+				particleQuantity[i] += centerPixel.b * weights[i];
+			}
+		}
+		
+		float totalParticles = 0.0;
+		
+		for (int i = 0; i < 9; i++) {
+			totalParticles += particleQuantity[i];
+		}
+		
+		vec2 averageVelocity = vec2(0.0);
+		
+		if (totalParticles != 0.0) {
+			for (int i = 0; i < 9; i++) {
+				averageVelocity += particleQuantity[i] / totalParticles * velocity[i];
+			}
+		}
+		
+		float[9] equilibriumParticleQuantity = better_equilibriumVelocityDistribution(averageVelocity, totalParticles);
+		//float[9] equilibriumParticleQuantity = equilibrate(particleQuantity);
+		float[9] derivative = isolateViscousComponents(subtract(equilibriumParticleQuantity, particleQuantity));
+		//float[9] derivative = apply_conservation_rules(subtract(equilibriumParticleQuantity, particleQuantity));
+		float distance = 1.0/array_max(divide(derivative, equilibriumParticleQuantity));
+		float[9] newParticleQuantity = add(equilibriumParticleQuantity, multiply(derivative, distance));
+		
+		float oldEntropy = 0.0;
+		for (int i = 0; i < 9; i++) {
+			oldEntropy -= H(particleQuantity[i], weights[i]);
+		}
+		
+		// after this point is a simple bisector-based regula falsi root finding algorithm
+		
+		float[9] particleQuantity1 = equilibriumParticleQuantity;
+		float[9] particleQuantity2 = newParticleQuantity;
+		float originalEntropy = oldEntropy;
+		
+		// 27 appears to be the exact number of iterations after which the algorithm stops changing particleQuantity1
+		for (int i = 0; i < 27; i++) {
+			float[9] bisectorParticleQuantity = add(divide(particleQuantity1, 2.0), divide(particleQuantity2, 2.0));
+			
+			float bisectorEntropy = 0.0;
+			
+			for (int i = 0; i < 9; i++) {
+				bisectorEntropy -= H(bisectorParticleQuantity[i], weights[i]);
+			}
+			
+			if (bisectorEntropy > originalEntropy) {
+				particleQuantity1 = bisectorParticleQuantity;
+			} else {
+				particleQuantity2 = bisectorParticleQuantity;
+			}
+		}
+		
+		equilibriumParticleQuantity = particleQuantity1;
+		equilibriumParticleQuantity = array_mix(equilibriumParticleQuantity, enhanced_equilibrate(equilibriumParticleQuantity), 1.0);
+		
+		float relaxation = 1.0;
+		particleQuantity = array_mix(particleQuantity, equilibriumParticleQuantity, relaxation);
+		
+		color = vec4(particleQuantity[int(pixelCoords.x + 0.5) % 3 + 3 * (int(pixelCoords.y + 0.5) % 3)], pixel.gba);
+	} else {
+		color = pixel;
+	}
+	
+	FragColor = color;
+}
+		</script>
+		<script id="displayFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+uniform int speed_vorticity; // 0 -> show speed, 1 -> show vorticity
+
+out vec4 FragColor;
+
+vec2 getVelocity(vec2 texCoords) {
+	vec2 velocity = vec2(0.0);
+	
+	float totalParticles = 0.0;
+	vec2 momentum = vec2(0.0);
+	
+	for (int x = -1; x < 2; x++) {
+		for (int y = -1; y < 2; y++) {
+			float particles = texture(sampler, texCoords + vec2(x, y) / texSize).r;
+			totalParticles += particles;
+			momentum += particles * vec2(x, y);
+		}
+	}
+	
+	if (totalParticles != 0.0) {
+		velocity = momentum / totalParticles;
+	}
+	
+	return velocity;
+}
+
+float getSpecificEnergy(vec2 texCoords) {
+	float energy = 0.0;
+	float totalParticles = 0.0;
+	
+	for (int x = -1; x < 2; x++) {
+		for (int y = -1; y < 2; y++) {
+			float particles = texture(sampler, texCoords + vec2(x, y) / texSize).r;
+			energy += float(x*x + y*y) * particles;
+			totalParticles += particles;
+		}
+	}
+	
+	if (totalParticles == 0.0) return 0.0;
+	
+	return energy / totalParticles;
+}
+
+float H(float x, float weight) {
+	return x * log(x / weight);
+}
+
+float getSpecificEntropy(vec2 texCoords) {
+	float entropy = 0.0;
+	float totalParticles = 0.0;
+	
+	for (int x = -1; x < 2; x++) {
+		for (int y = -1; y < 2; y++) {
+			float particles = texture(sampler, texCoords + vec2(x, y) / texSize).r;
+			entropy -= H(particles, float[](4.0/9.0, 1.0/9.0, 1.0/36.0)[abs(x) + abs(y)]);
+			totalParticles += particles;
+		}
+	}
+	
+	if (totalParticles == 0.0) return 0.0;
+	
+	return entropy / totalParticles;
+}
+
+float getTotalParticles(vec2 texCoords) {
+	float totalParticles = 0.0;
+	
+	for (int x = -1; x < 2; x++) {
+		for (int y = -1; y < 2; y++) {
+			totalParticles += texture(sampler, texCoords + vec2(x, y) / texSize).r;
+		}
+	}
+	
+	return totalParticles;
+}
+
+float shadowgraphConvolution(vec2 v) {
+	if (v.x == 0.0 && v.y == 0.0) {
+		return 12.0;
+	} else if (v.x == 0.0 || v.y == 0.0) {
+		return -2.0;
+	} else {
+		return -1.0;
+	}
+}
+
+void main() {
+	float totalParticles = 0.0;
+	
+	vec4 color;
+	
+	if (texture(sampler, texCoords).g == 1.0) {
+		color = vec4(0.0, 0.0, 0.0, 1.0);
+	} else {
+		vec2 velocity = getVelocity(texCoords);
+		
+		float vorticity = 0.0;
+		bool skipVorticity = false;
+		for (int x = -1; x < 2; x++) {
+			for (int y = -1; y < 2; y++) {
+				skipVorticity = skipVorticity || texture(sampler, texCoords - 3.0 * vec2(x, y) / texSize).g > 1.0;
+				vorticity += dot(vec2(-y, x), getVelocity(texCoords - 3.0 * vec2(x, y) / texSize));
+			}
+		}
+		
+		if (skipVorticity) {
+			vorticity = 0.0;
+		}
+		
+		float shadowgraph = 0.5;
+		for (int x = -1; x < 2; x++) {
+			for (int y = -1; y < 2; y++) {
+				shadowgraph += getTotalParticles(texCoords - 3.0 * vec2(x, y) / texSize) * shadowgraphConvolution(vec2(x, y)) * 100.0;// * dot(vec2(x, y), vec2(-1.0, 0.0));
+			}
+		}
+		
+		totalParticles = getTotalParticles(texCoords);
+		
+		float speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+		
+		// uncomment to display temperature
+		/*float energy = getSpecificEnergy(texCoords);
+		speed = (energy - speed * speed) - 2.0/3.0;
+		speed *= 5.0;
+		speed += 0.25;*/
+		
+		// uncomment to display entropy
+		/*float entropy = getSpecificEntropy(texCoords);
+		speed = entropy + 0.25;*/
+		
+		// uncomment to display speed
+		speed = sqrt(speed);
+		
+		//float zeroPoint = 0.0;
+		float vorticityBrightness = 2.0 * float(speed_vorticity); // not pressure, vorticity, please forgive my failure to rename variables
+		float velocityBrightness = 2.0 * float(1 - speed_vorticity);
+		shadowgraph *= 0.0;
+		
+		vec3 vorticityColor = vec3(max(vorticity, 0.0), 0.0, 2.0 * max(-vorticity, 0.0));
+		vec3 velocityColor = vec3(vec3(speed));
+		color = vec4(vorticityColor * vorticityBrightness + velocityColor * velocityBrightness + shadowgraph, 1.0);
+	}
+	
+	FragColor = color;
+}
+		</script>
+	</head>
+	<body>
+		<div id="container">
+			<span id="speedMeter"></span>
+			<br>
+			<span id="fpsCounter"></span>
+			<br>
+			<span id="throughputMeter"></span>
+            <br>
+            <button onclick="window.stopSim = true">pause sim</button>
+            <button onclick="if (window.stopSim) window.restartSim()">unpause sim</button>
+		</div>
+		<canvas id="can" width="256" height="256"></canvas>
+	</body>
+</html>

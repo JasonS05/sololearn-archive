@@ -1,0 +1,20 @@
+body {
+	margin: 0;
+	font-family: Helvetica;
+}
+
+#can {
+	position: absolute;
+	z-index: 1;
+}
+
+#minimap {
+	position: absolute;
+	z-index: 2;
+}
+
+#errorMessage {
+	position: absolute;
+	left: 5px;
+	top: 5px;
+}

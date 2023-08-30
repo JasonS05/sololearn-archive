@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		
+		<!-- the two shader programs -->
+		<script id="shader-vs" type="x-shader/x-fragment">
+precision highp float;
+precision highp int;
+
+attribute vec2 coordinates;
+uniform vec2 upperRightCorner;
+uniform vec2 lowerLeftCorner;
+varying vec2 C;
+
+void main() {
+	C = vec2(coordinates.x == 1.0? upperRightCorner.x: lowerLeftCorner.x, coordinates.y == 1.0? upperRightCorner.y: lowerLeftCorner.y);
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+}
+		</script>
+		<script id="shader-fs" type="x-shader/x-fragment">
+precision highp float;
+precision highp int;
+
+uniform int maxIter;
+varying vec2 C;
+
+const float logOf2 = log(2.0);
+const float PI = radians(180.0);
+
+vec2 cmplxSquare(vec2 num) {
+	return vec2(num.x * num.x - num.y * num.y, 2.0 * num.x * num.y);
+}
+
+void main() {
+	vec2 Z = C;
+	int iter = 1;
+	
+	for (int i = 0; i >= 0; i++) {
+		Z = cmplxSquare(Z) + C;
+		iter++;
+		
+		if (length(Z) > 10.0 || i > maxIter) {
+			break;
+		}
+	}
+	float color = 30.0 * log(float(iter) + 1.0 - log(log(length(Z)))/logOf2);
+	gl_FragColor = length(Z) > 2.0? vec4((sin(color/vec3(2.0, 3.0, 5.0) - PI/2.0) + 1.0) / 2.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+}
+		</script>
+		
+		<!-- my personal little webgl library -->
+		<script>
+function supplyBufferData(gl, vertices, indices) {
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+	
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+}
+
+function createShaderProgram(gl, vertexShaderCode, fragmentShaderCode) {
+	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+	
+	gl.shaderSource(vertexShader, vertexShaderCode);
+	gl.shaderSource(fragmentShader, fragmentShaderCode);
+	
+	gl.compileShader(vertexShader);
+	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+		console.log("Vertex Shader: \n" + gl.getShaderInfoLog(vertexShader) + "\n");	   
+	}
+	gl.compileShader(fragmentShader);
+	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+		console.log("Fragment Shader: \n" + gl.getShaderInfoLog(fragmentShader) + "\n");
+	}
+	
+	const shaderProgram = gl.createProgram();
+	gl.attachShader(shaderProgram, vertexShader);
+	gl.attachShader(shaderProgram, fragmentShader);
+	gl.linkProgram(shaderProgram);
+	
+	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+		console.log(gl.getProgramInfoLog(shaderProgram));
+	}
+	
+	gl.useProgram(shaderProgram);
+	
+	return shaderProgram
+}
+
+function fill(gl, r, g, b, a) {
+	gl.clearColor(r, g, b, a);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+function supplyAttributeData(gl, shaderProgram, attributeName, componentsForThisAttribute, componentsPerVertex, offset) {
+	const attribute = gl.getAttribLocation(shaderProgram, attributeName);
+	gl.vertexAttribPointer(attribute, componentsForThisAttribute, gl.FLOAT, false, componentsPerVertex * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+	gl.enableVertexAttribArray(attribute);
+}
+		</script>
+	</head>
+	<body>
+		<div id=mandelbrot>
+			<form id=inputForm>
+				<input type=number step=any min=1 id=zoom value=1 required/><span>The amount of zoom</span><br/>
+				<input type=number step=any min=-3 max=3 id=x value=-0.5 required/><span>The x-value the plot is centered on</span><br/>
+				<input type=number step=any min=-3 max=3 id=y value=0 required/><span>The y-value the plot is centered on</span><br/>
+				<input type=number min=0 id=maxIter value=4096 required/><span>The maximum number of iterations</span><br/>
+				<input type=button value=Update onclick="plotTheMandelbrot()" />
+				<input type=button value="Zoom out" onclick="zoomOut()"/>
+				<input type=button value=Reset onclick="reset();plotTheMandelbrot()"/>
+			</form>
+			<span>Click anywhere on the image to zoom in to that spot</span>
+			<canvas id=canvas width=400 height=400></canvas><br/>
+		</div>
+		<p>This image to the left is what's known as the Mandelbrot fractal. What the Mandelbrot fractal is is a bit hard to explain, so go check out the wikipedia page on it, and if you can't understand it (wikipedia likes using big fancy words and equations) go check out the numberphile video on it <a href="https://www.youtube.com/watch?v=FFftmWSzgmk">here</a>. It's what helped me understand what this fractal is and how to compute it. Also, make sure to check out a few of the many "Mandelbrot Zooms" on youtube. They're amazing!</p>
+		<p>PS: This version is GPU accelerated, achieving maybe 50-100 times faster computation. Unfortunately, WebGL doesn't support double precision floating point, so it gets pixelated pretty quickly when zooming in.</p>
+	</body>
+</html>

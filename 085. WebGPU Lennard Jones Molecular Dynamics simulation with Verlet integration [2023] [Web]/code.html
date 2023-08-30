@@ -1,0 +1,54 @@
+<!--
+	This is a Molecular Dynamics simulaton. This means that it
+	simulates the behavior of substances on an atomic level.
+	This particular simulation uses an atomic model called the
+	Lennard Jones potential. This is a very simple description
+	of interatomic forces that essentially says that at long
+	distances atoms do not interact, at moderate distances atoms
+	attract, and at short distances atoms very strongly repel.
+
+	This potential is able to simulate a wide variety of
+	phenomena. In particular, it is capable of simulating solids,
+	liquids, gasses, and supercritical fluids with a high degree
+	of physical accuracy. However, because the potential is so
+	simple, it is only an accurate description of noble gasses.
+	Noble gasses interact almost exclusively through the Van der
+	Waals force. The Lennard Jones potential was designed
+	specifically to be an approximation of the Van der Waals
+	force.
+
+	In this simulation, the atoms start out on a square grid
+	spaced approximately at their preffered interatomic spacing.
+	However, these atoms do not naturally form a square grid.
+	Their preferred crystal structure is hexagonal. Consequently
+	they fairly rapidly rearrange into a hexagonal lattice,
+	releasing heat in the process. Heat is a vibration of the
+	atoms. If your monitor has enough resolution to clearly see
+	the positions of the atoms (my 1920x1080 monitor doesn't)
+	you will see them vibrating back and forth chaotically in
+	their positions in the crystal lattice.
+
+	Another feature you will notice is crystal grains. The
+	lattice has an associated orientiation. Each section of the
+	lattice forms with a somewhat random orientation. This
+	causes the lattice to form what are called grains, which
+	are regions of the lattice with the same orientation. Being
+	split into grains like this is thermodynamically
+	unfavorable. As such, with the help of the random thermal
+	oscillations, the grain boundaries move about and some
+	grains shrink and disappear while others grow. Eventually,
+	there will only be a few large grains left which will take
+	a very long time to merge, likely far longer than anyone
+	has the patience for.
+-->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+	</head>
+	<body>
+		<canvas id="can"></canvas>
+	</body>
+</html>
+

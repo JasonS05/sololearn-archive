@@ -1,0 +1,13 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>How to Evenly Distribute Dots within a Circle</title>
+	</head>
+	<body>
+		<canvas id="myCanvas" align="center"></canvas>
+		<p>This code fills in a circle with randomly placed (quickly fading) dots with no places in the circle getting more dots than anywhere else at a rate of 500 dots per second. This could be achieved by placing them in a rectangle around the circle and only showing the dots within the circle (its easier to make the dots appear everywhere in equal quantites with a rectange). However, that would waste dots. What this code does is it only places them inside the circle. It does this by instead of using cartesian cordinates (x and y) it uses polar coordinates (angle and distance) which are converted to cartesian only to display the dots. The polar coordinates give the angle of the line connecting the center point and the dot, and the distance of the dot from the center point. This will create a circle because all dots will be within a given distance from the center point.</p>
+		<p>There is a problem, though. If all values for distance are chosen with equal probability the dots will be concentrated towards the center because changing the angle has a smaller effect on the position, meaning the dots close the center will have less space and so be bunched up. This can be counteracted by changing the distribution so there are more dots far from the center than near the center (because theres more space further from the center than right next to the center). This can be done by applying the square root function to the distance value (values at 0.1 will be shifted to 0.316 and values at 0.5 will be shifted to 0.707 and values at 0.9 will be shifted to 0.949). I don't have a mathematical proof showing that that is the correct function, but it does produce incredibly excellent results, suggesting that it is.</p>
+	</body>
+</html>

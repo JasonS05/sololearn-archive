@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		
+		<!-- the two shader programs -->
+		<script id="shader-vs" type="x-shader/x-fragment">
+attribute vec4 coordinates;
+attribute vec4 vertexColor;
+
+uniform vec4 rotation;
+uniform vec4 cameraPosition;
+uniform vec4 cameraRotation;
+uniform float FOV;
+uniform float minDist;
+uniform float maxDist;
+
+varying vec4 fragmentColor;
+
+vec4 quatMult(vec4 a, vec4 b) {
+	return vec4(
+		a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+		a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+		a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
+		a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z
+	);
+}
+
+vec4 quatInv(vec4 quat) {
+	return vec4(-1.0 * quat.xyz, quat.w);
+}
+
+vec4 quatRotate(vec4 rotation, vec4 vertex) {
+	return quatMult(quatMult(rotation, vertex), quatInv(rotation));
+}
+
+vec4 perspective(vec4 vertex) {
+	vertex -= cameraPosition;
+	vertex = quatRotate(cameraRotation, vertex);
+	vertex.xy /= vertex.z * tan(FOV / 2.0);
+	vertex.z -= (maxDist + minDist) / 2.0;
+	vertex.z /= (maxDist - minDist) / 2.0;
+	vertex.w = 1.0;
+	return vertex;
+}
+
+void main() {
+	fragmentColor = vertexColor;
+	gl_Position = perspective(quatRotate(rotation, coordinates));
+}
+		</script>
+		<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 fragmentColor;
+
+void main() {
+	gl_FragColor = fragmentColor;
+}
+		</script>
+		
+		<!-- my personal little webgl library -->
+		<script>
+function supplyBufferData(gl, vertices, indices) {
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+	
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+}
+
+function createShaderProgram(gl, vertexShaderCode, fragmentShaderCode) {
+	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+	
+	gl.shaderSource(vertexShader, vertexShaderCode);
+	gl.shaderSource(fragmentShader, fragmentShaderCode);
+	
+	gl.compileShader(vertexShader);
+	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+		console.log("Vertex Shader: \n" + gl.getShaderInfoLog(vertexShader) + "\n");	   
+	}
+	gl.compileShader(fragmentShader);
+	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+		console.log("Fragment Shader: \n" + gl.getShaderInfoLog(fragmentShader) + "\n");
+	}
+	
+	const shaderProgram = gl.createProgram();
+	gl.attachShader(shaderProgram, vertexShader);
+	gl.attachShader(shaderProgram, fragmentShader);
+	gl.linkProgram(shaderProgram);
+	
+	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+		console.log(gl.getProgramInfoLog(shaderProgram));
+	}
+	
+	if (!gl.getProgramParameter(shaderProgram, gl.VALIDATE_STATUS)) {
+		console.log(gl.getProgramInfoLog(shaderProgram));
+	}
+	
+	gl.useProgram(shaderProgram);
+	
+	return shaderProgram
+}
+
+function fill(gl, r, g, b, a) {
+	gl.clearColor(r, g, b, a);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+}
+
+function supplyAttributeData(gl, shaderProgram, attributeName, componentsForThisAttribute, componentsPerVertex, offset) {
+	const attribute = gl.getAttribLocation(shaderProgram, attributeName);
+	gl.vertexAttribPointer(attribute, componentsForThisAttribute, gl.FLOAT, false, componentsPerVertex * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+	gl.enableVertexAttribArray(attribute);
+}
+		</script>
+	</head>
+	<body>
+		<canvas id="canvas"></canvas>
+	</body>
+</html>

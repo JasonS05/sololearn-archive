@@ -1,0 +1,27 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML"></script>
+	</head>
+	<body>
+		<h1>My Free LaTeX Editor</h1>
+		<p>One the left is where the LaTeX goes. On the right is the result. Every time you edit the LaTeX it re-renders the result so you can see all your changes instantly.</p>
+		<textarea id=LaTeX>\LARGE{\text{Some Equations}}
+\\ \text{ } \\
+\text{The Quadratic Formula:} \\
+x=\dfrac{b\pm\sqrt{b^2-4ac}}{2a}
+\\ \text{ } \\
+\text{Euler's Famous Identity:} \\
+e^{i\pi}+1=0
+\\ \text{ } \\
+\text{The Taylor Series Of the Sine Function:} \\
+\sin{x}=\sum^\infty_{n=1}\dfrac{(-1)^n}{(2n+1)!}x^{2n+1}
+\\ \text{ } \\
+\text{An integral where } \pi \text{ pops out of nowhere:} \\
+\dfrac{\pi}{4}=\int^1_0\sqrt{1-x^2}dx</textarea>
+		<div id=result></div>
+	</body>
+</html>

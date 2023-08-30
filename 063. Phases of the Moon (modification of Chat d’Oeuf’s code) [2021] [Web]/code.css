@@ -1,0 +1,45 @@
+/* Created by Chat d'Oeuf (Baron) [12AM-10PM(CET)] */
+
+a {
+  font-size: 13px;
+  font-family: monospace;
+  color: #5af;
+}
+body {
+  background: #222;
+  color: #fff;
+}
+.explanation {
+  font-size: 14px;
+  font-family: monospace;
+  padding: 4px 4px;
+  line-height: 16px;
+}
+.title {
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 900;
+}
+code {
+  font-size: 3.5vw;
+}
+.nextstep, .startstep {
+  margin-left: 10px;
+}
+.subject {
+  display: none;
+}
+canvas {
+  background: #2b2b2b;
+  width: 60vw;
+  height: 60vw;
+}
+.canvas2 {
+  background: #00ffff;
+}
+.copyright {
+  margin: 8px 2px;
+  font-family: monospace;
+  font-size: 10px;
+  color: #bbb;
+}

@@ -1,0 +1,15 @@
+/* created by Jason Stone */
+
+html {
+	font-family: arial, Helvetica, sans-serif;
+}
+
+canvas {
+	float: left;
+	margin-right: 1em;
+	margin-bottom: 1em;
+}
+
+code {
+	white-space: pre-wrap;
+}

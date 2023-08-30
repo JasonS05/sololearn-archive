@@ -1,0 +1,21 @@
+/* created by Jason Stone */
+
+body {
+	margin: 0;
+	font-family: Helvetica, sans-serif;
+}
+
+#canvas {
+	margin-left: 2px;
+}
+
+input[type="button"] {
+	-webkit-appearance: none;
+	border-radius: 5px;
+	border-style: none;
+	background-color: #ccc;
+}
+
+p {
+	margin: 5px;
+}

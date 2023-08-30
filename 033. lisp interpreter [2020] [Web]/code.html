@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+	</head>
+	<body>
+		<div contenteditable="true" id="code"></div>
+		<br/>
+		<input type="button" value="run" onclick="run();">
+		<p>This is a very minimal scheme-inspired lisp interpreter (with tail call optimization!) which likely has many bugs. Currently all functions/keywords are:</p>
+		<ul>
+			<li>
+				<code>lambda</code>
+				<br/>syntax: <code>(lambda (arg1 arg2 ...) code)</code>
+				<br/>purpose: returns a function
+			</li>
+			<li>
+				<code>function</code>
+				<br/>syntax: <code>(function (functionName arg1 arg2 ...) code)</code>
+				<br/>purpose: binds a function to functionName
+			</li>
+			<li>
+				<code>named-let</code>
+				<br/>syntax: <code>(named-let functionName ((arg1 val1) (arg2 val2) ...) code)</code>
+				<br/>purpose: define functionName with args arg1, arg2, ... and return the value returned by calling it with the values given for each argument. The function can be called from within itself using the name of the function
+			</li>
+			<li>
+				<code>if</code>
+				<br/>syntax: <code>(if cond code1 code2)</code>
+				<br/>purpose: if cond is true (true defined as any JS truthy value) then it executes and returns the return value of code1, else it does the same but for code2
+			</li>
+			<li>
+				<code>print</code>
+				<br/>syntax: <code>(print value)</code>
+				<br/>purpose: prints the given value
+			</li>
+			<li>
+				<code>&lt;</code>
+				<br/>syntax: <code>(&lt; arg1 arg2)</code>
+				<br/>purpose: returns whether or not arg1 is less than arg2 (uses JS less-than operator)
+			</li>
+			<li>
+				<code>-</code>
+				<br/>syntax: <code>(- arg1 arg2)</code>
+				<br/>purpose: returns arg1 minus arg2 (uses JS subtraction operator)
+			</li>
+			<li>
+				<code>*</code>
+				<br/>syntax: <code>(* arg1 arg2)</code>
+				<br/>purpose: returns arg1 multiplied by arg2 (uses JS multiplication operator)
+			</li>
+		</ul>
+		<p>Known problems:</p>
+		<ul>
+			<li>No syntax checking beyond parenthesis matching.</li>
+			<li>Won't throw an error if you name a variable (a variable being defined as a name with a value bound to it, e.g. a function argument) a number instead of a valid identifier. The variable will simply be inaccessible.</li>
+			<li>If the lisp takes a while to execute or enters an infinite loop, the JS will hang until the lisp program terminates, which in the case of an infinite loop is never (unless the JS is forcefully stopped, e.g. closing SoloLearn).</li>
+		</ul>
+		<p>I plan to add more functions and other features as well as fix the known problems, but knowing myself I'll probably never get around to doing it.</p>
+	</body>
+</html>

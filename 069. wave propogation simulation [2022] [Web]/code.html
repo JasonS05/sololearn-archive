@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+in vec2 coordinates;
+
+out vec2 texCoords;
+
+void main() {
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="initFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+float hypot(vec2 v) {
+	return sqrt(v.x * v.x + v.y * v.y);
+}
+
+float gaussian(float x) {
+    return exp(-x*x);
+}
+
+void main() {
+	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+	
+	vec2 position = texCoords.xy - vec2(0.5);
+	
+	if (abs(position.x) < 0.1 && abs(position.y) < 0.1) {
+        color.x = 1.0;
+    }
+	
+	FragColor = color;
+}
+		</script>
+		<script id="compFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+// k controls both the wave propagation speed and the attenuation of high frequency
+// components. Higher values of k increase the speed and reduce high frequency
+// attenuation, with 2.0 having no attenuation and propogating at a speed of sqrt(2)/2
+// pixels per frame. Values higher than 2.0 are extremely numerically unstable.
+//
+// I do not know the exact relation between k and wave velocity, but my guess is
+// that it is v = k*sqrt(2)/4, where v is wave velocity in pixels per frame.
+const float k = 1.8;
+
+vec4 getPixel(vec2 coords) {
+	float pixelSize = 1.0 / texSize;
+	vec2 pixelCoords = pixelSize * coords + texCoords;
+	return texture(sampler, pixelCoords);
+}
+
+void main() {
+	vec2 thisPixel = getPixel(vec2(0.0)).xy;
+	
+	float n = 0.0;
+	
+	n += getPixel(vec2(0.0, 1.0)).x;
+	n += getPixel(vec2(1.0, 0.0)).x;
+	n += getPixel(vec2(0.0, -1.0)).x;
+	n += getPixel(vec2(-1.0, 0.0)).x;
+	
+	n /= 4.0;
+	
+	n -= thisPixel.x;
+    
+    n *= k;
+	
+    // not sure what's up with the 1/k + 1/2 thing, but I've experimentally determined that
+    // the simulation is numerically stable if n here is multiplied by any factor between
+    // 1 and 1/k + 1/2 and quickly destabilizes for any value outside that range. Higher
+    // values within that range also make the wave "softer", meaning the higher frequency
+    // components seem to be attenuated causing sharp wavefronts to loose their edge and
+    // high frequency ripples die out. So, I've just chosen the highest value in the range.
+    // Anything higher, even only very slightly, will cause the highest frequency component
+    // to self-amplify instead of being attenuated, thus the numerical isntability. At this
+    // particular value of 1/k + 1/2 this highest frequency component is neither attenuated
+    // nor amplified.
+    //
+    // also if n is multiplied by 1 instead of 1/k + 1/2 then this is actually the Verlet
+    // method, which is kind of interesting.
+	FragColor = vec4(thisPixel.x + thisPixel.y + (1.0/k + 0.5)*n, thisPixel.y + n, 0.0, 0.0);
+}
+		</script>
+		<script id="displayFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+void main() {
+	float n = texture(sampler, texCoords).x;
+	
+	FragColor = vec4(n, 0.0, -n, 1.0);
+}
+		</script>
+	</head>
+	<body>
+		<canvas id="can"></canvas>
+	</body>
+</html>

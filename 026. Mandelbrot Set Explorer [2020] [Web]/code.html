@@ -1,0 +1,28 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Mandelbrot Set Explorer</title>
+	</head>
+	<body>
+		<div id=mandelbrot>
+			<form id=inputForm>
+				<input type=number step=any min=1 id=zoom value=1 required/><span>The amount of zoom</span><br/>
+				<input type=number step=any min=-3 max=3 id=x value=-0.5 required/><span>The x-value the plot is centered on</span><br/>
+				<input type=number step=any min=-3 max=3 id=y value=0 required/><span>The y-value the plot is centered on</span><br/>
+				<input type=number min=0 id=maxIter value=256 required/><span>The maximum number of iterations</span><br/>
+				<input type=button value=Update onclick="main()" />
+				<input type=button value="Zoom out" onclick="zoomOut()"/>
+				<input type=button value=Reset onclick="reset();main()"/>
+			</form>
+			<span>Click anywhere on the image to zoom in to that spot</span>
+			<div id=container><div id=progress></div></div>
+			<canvas id=canvas width=400 height=400></canvas><br/>
+		</div>
+		<p>This image to the left is what's known as the Mandelbrot fractal. What the Mandelbrot fractal is is a bit hard to explain, so go check out the wikipedia page on it, and if you can't understand it (wikipedia likes using big fancy words and equations) go check out the numberphile video on it <a href="https://www.youtube.com/watch?v=FFftmWSzgmk">here</a>. It's what helped me understand what this fractal is and how to compute it. Also, make sure to check out a few of the many "Mandelbrot Zooms" on youtube. They're really pretty!</p>
+		<p>My to-do list for this Mandelbrot project:</p>
+			<li>Looks like nothing's here! Make some suggestions in the comments section and I may add it to this list.</li>
+		<p>Don't forget to leave a like 👍</p>
+	</body>
+</html>

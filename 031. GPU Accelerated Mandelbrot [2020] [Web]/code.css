@@ -1,0 +1,44 @@
+/* created by Jason Stone */
+
+body {
+	font-family: arial, Helvetica, sans-serif;
+}
+
+#mandelbrot {
+	float: left;
+	margin-right: 1em;
+	margin-bottom: 1em;
+	padding: 5px;
+	border-radius: 10px;
+	background-color: #ddd;
+	max-width: 406px;
+}
+
+canvas {
+	border: solid;
+	border-width: 2px;
+	border-radius: 5px;
+}
+
+input {
+	margin-right: 10px;
+}
+
+#container {
+	width: 400px;
+	background-color: #aaa;
+	padding: 3px;
+}
+
+#progress {
+	height: 10px;
+	width: 50%;
+	background: -webkit-linear-gradient(left, #00f, #0cf );
+	background-size: 50px;
+	font-weight: bold;
+	animation: marquee 500ms linear infinite;
+}
+
+@keyframes marquee{
+	100% {background-position: 50px 0;}
+}

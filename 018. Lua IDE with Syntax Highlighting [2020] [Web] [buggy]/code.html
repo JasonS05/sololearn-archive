@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
+	</head>
+	<body>
+		<div class="container">
+			<input type="button" onclick="fixSpecialChars();" value="FIX SPECIAL CHARACTERS"/>
+			<input type="button" onclick="highlightSyntax();" value="HIGHLIGHT SYNTAX"/>
+			<input type="button" onclick="runTheLua();" value="RUN"/>
+			<input type="button" onclick="console.log(program.innerHTML);" value="DEBUG"/>
+			<br/>
+			<div contenteditable="true" id="program" autocapitalize="off">require("js")
+local window = js.global
+local document = window.document
+local canvas, width, height, ctx
+local points = {};
+
+local Quaternion
+Quaternion = {
+	meta = {
+		__add = function(q1, q2)
+			if getmetatable(q1) ~= Quaternion.meta or getmetatable(q2) ~= Quaternion.meta then
+				error("attempt to add a quaternion and a non-quaternion", 2)
+			end
+			
+			return Quaternion.new(q1.r + q2.r, q1.i + q2.i, q1.j + q2.j, q1.k + q2.k)
+		end,
+		
+		__mul = function(q1, q2)
+			if getmetatable(q1) ~= Quaternion.meta or getmetatable(q2) ~= Quaternion.meta then
+				error("attempt to multiply a quaternion and a non-quaternion", 2)
+			end
+			
+			local r = q1.r * q2.r - q1.i * q2.i - q1.j * q2.j - q1.k * q2.k
+			local i = q1.r * q2.i + q1.i * q2.r + q1.j * q2.k - q1.k * q2.j
+			local j = q1.r * q2.j - q1.i * q2.k + q1.j * q2.r + q1.k * q2.i
+			local k = q1.r * q2.k + q1.i * q2.j - q1.j * q2.i + q1.k * q2.r
+			
+			return Quaternion.new(r, i, j, k)
+		end,
+		
+		__pow = function(q, n)
+			if type(n) ~= "number" then
+				error("attempt to raise a quaternion to a non-numerical value '" .. n .. "' of type " .. type(n), 2)
+			end
+			
+			local angle = 2 * math.acos(q.r)
+			local x = q.i / math.sin(angle / 2)
+			local y = q.j / math.sin(angle / 2)
+			local z = q.k / math.sin(angle / 2)
+			
+			angle = angle * n
+			
+			local r = math.cos(angle / 2)
+			local i = x * math.sin(angle / 2)
+			local j = y * math.sin(angle / 2)
+			local k = z * math.sin(angle / 2)
+			
+			return Quaternion.new(r, i, j, k)
+		end
+	},
+	
+	new = function(r, i, j, k)
+		local instance = {
+			r = r,
+			i = i,
+			j = j,
+			k = k
+		}
+		
+		setmetatable(instance, Quaternion.meta)
+		return instance
+	end
+}
+
+local Point
+Point = {
+	new = function(x, y, z, radius)
+		local instance = {
+			position = Quaternion.new(0, x, y, z),
+			radius = radius,
+			
+			rotate = function(self, rotation) --{}
+				self.position = rotation * self.position * rotation ^ -1
+			end,
+			
+			show = function(self)
+				local x = self.position.i / (self.position.k + 5) * 1000
+				local y = self.position.j / (self.position.k + 5) * 1000
+				local dist = math.sqrt(self.position.i ^ 2 + self.position.j ^ 2 + (self.position.k + 5) ^ 2)
+				local size = self.radius / dist
+				
+				ctx:beginPath()
+				ctx:arc(width / 2 + x, height / 2 + y, size, 0, math.pi * 2)
+				ctx:fill()
+				ctx:closePath()
+			end
+		}
+		
+		return instance
+	end
+}
+
+canvas = document:querySelector("#canvas")
+canvas.width, canvas.height = 500, 500
+width, height = canvas.width, canvas.height
+ctx = canvas:getContext("2d")
+
+ctx.fillStyle = "#000"
+ctx:fillRect(0, 0, width, height)
+
+for i = 1, 200 do
+	local x, y, z
+	
+	repeat
+		x = math.random() * 2 - 1
+		y = math.random() * 2 - 1
+		z = math.random() * 2 - 1
+	until x ^ 2 + y ^ 2 + z ^ 2 &lt; 1
+	
+	local scaleFactor = math.sqrt(x ^ 2 + y ^ 2 + z ^ 2)
+	x = x / scaleFactor
+	y = y / scaleFactor
+	z = z / scaleFactor
+	
+	points[i] = Point.new(x, y, z, 10)
+end
+
+ctx.fillStyle = "#fff"
+
+for _, point in ipairs(points) do
+	point:show()
+end
+
+local x, y
+
+canvas:addEventListener("touchstart", function(self, event)
+	event:preventDefault()
+	x = event.changedTouches[0].pageX
+	y = event.changedTouches[0].pageY
+end)
+
+canvas:addEventListener("touchmove", function(self, event)
+	local dx = event.changedTouches[0].pageX - x
+	local dy = event.changedTouches[0].pageY - y
+	x = event.changedTouches[0].pageX
+	y = event.changedTouches[0].pageY
+	
+	ctx.fillStyle = "#000"
+	ctx:fillRect(0, 0, width, height)
+	ctx.fillStyle = "#fff"
+	for _, point in ipairs(points) do
+		local angle = math.sqrt(dx ^ 2 + dy ^ 2) / 1000
+		
+		local r = math.cos(angle / 2)
+		local i = math.sin(angle / 2) * dy
+		local j = math.sin(angle / 2) * -dx
+		local k = 0
+		
+		local scaleFactor = math.sqrt(r ^ 2 + i ^ 2 + j ^ 2 + k ^ 2)
+		
+		r = r / scaleFactor
+		i = i / scaleFactor
+		j = j / scaleFactor
+		k = k / scaleFactor
+		
+		point:rotate(Quaternion.new(r, i, j, k))
+		point:show()
+	end
+end)
+</div>
+			<br/>
+			<div id="output"></div>
+			<canvas id="canvas"></canvas>
+		</div>
+		<p>Some explanation or something</p>
+	</body>
+</html>

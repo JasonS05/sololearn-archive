@@ -1,0 +1,20 @@
+/* created by Jason Stone */
+
+/* make it so that the canvas can take up the whole screen with no gaps at the edges */
+body {
+	margin: 0;
+}
+
+/* make it so you can't move the page around */
+canvas {
+	position: fixed;
+}
+
+div {
+	position: fixed;
+}
+
+span {
+	color: white;
+	font-family: Helvetica, sans-serif;
+}

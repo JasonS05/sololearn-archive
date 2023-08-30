@@ -1,0 +1,12 @@
+/* [-][Note: because periods and commas are bf (brainfuck) instructions I can't include those in comments. However, if the cell is zero (as is gaurenteed with these three bf instructions: [-]) I can wrap the comment in a pair of square brackets (like I've done with this comment) so that I can use periods and commas as well as other bf instructions as usual as long as square brackets are matched properly. Additionally I'm using the CSS comment delimiters for syntax highlighting purposes.]
+
+[-][This code is an if statement. If the value of the first cell is nonzero it executes the first statement (line 8, prints a left parenthesis). Otherwise it executes the second statement (line 10, prints a right parenthesis). Try adding a + to the beginning of the program to make the first cell nonzero.]
+
+[-][To find out how bf works I recommend looking at the wikipedia page on it.] */
+
+>[-]+<[>[-]
+	++++++++++++++++++++++++++++++++++++++++.
+[-]<[-]]>[[-]
+	+++++++++++++++++++++++++++++++++++++++++.
+[-]]
+

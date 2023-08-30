@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+in vec2 coordinates;
+
+out vec2 texCoords;
+
+void main() {
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="initFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+vec2 getPixelCoords(vec2 texCoords) {
+	return texCoords * texSize - 0.5;
+}
+
+vec2 getTexCoords(vec2 pixelCoords) {
+	return (pixelCoords + 0.5) / texSize;
+}
+
+vec4 getPixel(vec2 pixelCoords) {
+	return texture(sampler, getTexCoords(pixelCoords));
+}
+
+float hypot(vec2 v) {
+	return sqrt(v.x * v.x + v.y * v.y);
+}
+
+void main() {
+	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+	
+	ivec2 pixelCoords = ivec2(getPixelCoords(texCoords) + 0.5);
+	
+	if (
+		pixelCoords.y == 0 ||
+		pixelCoords.y == int(texSize) - 1 ||
+		pixelCoords.x == 0 ||
+		pixelCoords.x == int(texSize) - 1 ||
+		hypot(vec2(pixelCoords) - texSize * vec2(0.2, 0.5)) < 16.0
+	) {
+		color = vec4(0.0, 0.0, 0.0, 1.0); // 1.0: wall
+	} else if (pixelCoords.x == 1) {
+		color = vec4(1.0, 0.0, 0.0, -0.3); // -0.3: generate 0.3 density per second
+	} else if (pixelCoords.x == int(texSize) - 2) {
+		color = vec4(1.0, 0.0, 0.0, 2.0); // 2.0: absorber: maintain density
+	} else {
+		color = vec4(1.0, texCoords.y / 10.0 - 0.05, 0.0, 0.0); // 0.0: empty space
+	}
+	
+	FragColor = color;
+}
+		</script>
+		<script id="compFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+float sum(vec2 v) {
+	return v.x + v.y;
+}
+
+float square(float x) {
+	return x * x;
+}
+
+vec4 getPixel(vec2 pixelCoords) {
+	return texture(sampler, (pixelCoords + 0.5) / texSize);
+}
+
+vec2 getPixelCoords(vec2 texCoords) {
+	return texCoords * texSize - 0.5;
+}
+
+vec2[9] velocity = vec2[](
+	vec2(-1.0, -1.0),
+	vec2( 0.0, -1.0),
+	vec2( 1.0, -1.0),
+	vec2(-1.0,  0.0),
+	vec2( 0.0,  0.0),
+	vec2( 1.0,  0.0),
+	vec2(-1.0,  1.0),
+	vec2( 0.0,  1.0),
+	vec2( 1.0,  1.0)
+);
+
+float[9] weights = float[](
+	1.0 / 36.0,
+	1.0 /  9.0,
+	1.0 / 36.0,
+	1.0 /  9.0,
+	4.0 /  9.0,
+	1.0 /  9.0,
+	1.0 / 36.0,
+	1.0 /  9.0,
+	1.0 / 36.0
+);
+
+float equilibriumVelocityDistribution(vec2 averageVelocity, vec2 velocity) {
+	return
+		  1.0
+		+ 3.0 * sum(velocity * averageVelocity)
+		+ 9.0 / 2.0 * square(sum(velocity * averageVelocity))
+		- 3.0 / 2.0 * sum(averageVelocity * averageVelocity);
+}
+
+void main() {
+	vec2 pixelCoords = getPixelCoords(texCoords);
+	vec4 pixel = getPixel(pixelCoords);
+	
+	vec4 color;
+	
+	if (pixel.a <= 0.0) {
+		float[9] particleQuantity;
+		
+		for (int i = 0; i < 9; i++) {
+			vec4 neighbor = getPixel(pixelCoords - velocity[i]);
+			
+			if (neighbor.a <= 0.0) {
+				particleQuantity[i] = weights[i] * neighbor.r * equilibriumVelocityDistribution(neighbor.gb, velocity[i]);
+			} else if (neighbor.a == 1.0) {
+				particleQuantity[i] = weights[i] * pixel.r * equilibriumVelocityDistribution(-pixel.gb, velocity[i]);
+			} else if (neighbor.a == 2.0) {
+				particleQuantity[i] = weights[i] * neighbor.r * equilibriumVelocityDistribution(pixel.gb, velocity[i]);
+			}
+		}
+		
+		float totalParticles = -pixel.a;
+		
+		for (int i = 0; i < 9; i++) {
+			totalParticles += particleQuantity[i];
+		}
+		
+		vec2 averageVelocity = vec2(0.0);
+		
+		if (totalParticles != 0.0) {
+			for (int i = 0; i < 9; i++) {
+				averageVelocity += particleQuantity[i] / totalParticles * velocity[i];
+			}
+		}
+		
+		color = vec4(totalParticles, averageVelocity, pixel.a);
+	} else {
+		color = pixel;
+	}
+	
+	FragColor = color;
+}
+		</script>
+		<script id="displayFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+vec3 gammaAdjust(vec3 v, float gamma) {
+	float inverseGamma = 1.0 / gamma;
+	
+	return vec3(
+		pow(v.x, inverseGamma),
+		pow(v.y, inverseGamma),
+		pow(v.z, inverseGamma)
+	);
+}
+
+float hypot(vec2 v) {
+	return sqrt(v.x * v.x + v.y * v.y);
+}
+
+void main() {
+	vec4 pixel = texture(sampler, texCoords);
+	
+	vec4 color;
+	
+	if (pixel.a <= 0.0) {
+		float pressure = pixel.r;
+		float velocity = hypot(pixel.gb);
+		float vorticity = 0.0;
+		
+		for (float x = -1.0; x < 2.0; x++) {
+			for (float y = -1.0; y < 2.0; y++) {
+				vorticity += dot(texture(sampler, texCoords + vec2(x, y) / texSize).gb, vec2(y, -x));
+			}
+		}
+		
+		float ambientPressure = 1.0;
+		float pressureBrightness = 0.0;
+		float vorticityBrightness = 0.0;
+		float velocityBrightness = 2.0;
+		
+		float gamma = 1.0;
+		
+		vec3 pressureColor = clamp(pressureBrightness * vec3(
+			pressure - ambientPressure,
+			0.0,
+			ambientPressure - pressure
+		), 0.0, 1.0);
+		
+		vec3 vorticityColor = clamp(vorticityBrightness * vec3(
+			vorticity,
+			0.0,
+			-vorticity
+		), 0.0, 1.0);
+		
+		vec3 velocityColor = clamp(velocityBrightness * vec3(
+			velocity
+		), 0.0, 1.0);
+		
+		color = vec4(gammaAdjust(pressureColor + vorticityColor + velocityColor, gamma), 1.0);
+	} else {
+		color = vec4(0.0, 0.0, 0.0, 1.0);
+	}
+	
+	FragColor = color;
+}
+		</script>
+	</head>
+	<body>
+		<div id="container">
+			<span id="speedMeter"></span>
+			<br />
+			<span id="fpsCounter"></span>
+			<br />
+			<span id="throughputMeter"></span>
+		</div>
+		<canvas id="can"></canvas>
+	</body>
+</html>

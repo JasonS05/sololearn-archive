@@ -1,0 +1,13 @@
+<!-- created by Jason Stone -->
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Electron Repulsion Simulation</title>
+	</head>
+	<body>
+		<canvas id="myCanvas" align="center"></canvas>
+		<p>This models a cloud of electrons in a 2D plane. All electrons have an equal negative charge, and like charges repel. Each electron is repelled by all other electrons, with the repulsion corresponding to the inverse square of the distance. You might think that since its a 2D plane it would drop off with the inverse of the distance, not the inverse of the distance squared, but you can think of this as the cross-section of a wire which means it is the inverse of the distance squared since the wire is 3D.</p>
+		<p>As you can see, there is a low electron density in the middle, and a lot towards the edges. This is why at high voltages, discharges generally occur at the sharp edges. The electrons get packed in very tightly in the sharp edges, and are quite sparse in the middle. In an uncharged wire the electrons would have a uniform distribution since each electron is paired with an atom. The model here only applies when extra electrons are present in the conductor, such as in the case of high-voltages. This model also works for electron holes, which can be pretty safely modeled as positive charges.</p>
+	</body>
+</html>
