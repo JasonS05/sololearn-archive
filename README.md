@@ -7,9 +7,9 @@ This repository also contains a number of programs that I never made public on S
 
 Programs marked [non-functional] are attempts to improve upon or otherwise change a prior program but failed to achieve their goal.
 
-## WebGPU
+### WebGPU
 
-Some of my latest programs use WebGPU. As of writing this, it is still a very new API with limited support. If you are on Windows, WebGPU is available on the latest version of Chrome. It may also be available on Edge, but I don't run Windows so I can't test that. If you are on macOS, the latest version of Chrome works, but it is also available through the latest version of the Safari Technology Preview. For Linux, there is no browser that supplies WebGPU out of the box. However, the Chrome developer version can provide WebGPU support with the proper command line options. Currently this command works for me:
+Some of my latest programs use WebGPU. As of writing this, it is still a very new API with limited support. If you are on Windows, WebGPU is available through the latest version of Chrome. It may also be available on Edge, but I don't use Windows so I can't test that. If you are on macOS, it is available through both the latest version of Chrome and the Safari Technology Preview. For Linux, there is no browser that supplies WebGPU out of the box. However, the Chrome developer version can provide WebGPU support with the proper command line options. Currently this command works for me:
 
 ```bash
 
