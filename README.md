@@ -29,3 +29,7 @@ For Chromebooks, I am under the impression that the latest version of Chrome sup
 
 To my knowledge, there is no way to run WebGPU on iPads and iPhones. For Android devices it may be possible, but I do not know of any way and I do not own any such devices.
 
+The repository where these codes are stored is [here](https://github.com/JasonS05/sololearn-archive).
+
+The github pages site where you can load these codes in your browser is [here](https://jasons05.github.io).
+
