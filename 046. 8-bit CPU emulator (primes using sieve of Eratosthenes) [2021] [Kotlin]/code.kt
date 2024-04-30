@@ -13,24 +13,24 @@ where the 0x01, 0x05 is LOAD 0x05, the 0x04 is DREF, and 0x0b is JMP
 
 Here is the table of instruction specifying the opcode, mnemonic, mnemonic meaning, and function:
 
-0x00 NOP - no operation: does nothing
-0x01 LOAD operand - load: loads the operand into the accumulator
-0x02 STOR [operand] - store: stores the contents of the accumulator into the memory address specified by the operand
-0x03 STOR [[operand]] - store: stores the contents of the accumulator into the memory address specified by the memory address that's specified by the operand
-0x04 DREF - dereference: replaces the contents of the accumulator with the contents of the memory slot specified by the value of the accumulator
-0x05 UOUT - unsigned out: prints the contents of the accumulator as an unsigned integer
-0x06 SOUT - signed out: prints the contents of the accumulator as a signed integer
-0x07 ADD operand - add: adds the operand to the accumulator and sets the four flags appropriately
-0x08 ADD [operand] - add: adds the value at the memory address specified by the operand to the accumulator and sets the four flags appropriately
-0x09 SUB operand - subtract: subtracts the operand from the accumulator and sets the four flags appropriately
-0x0a SUB [operand] - subtract: subtracts the value at the memory address specified by the operand from the accumulator and sets the four flags appropriately
-0x0b JMP - jump: unconditionally jumps to the address in the accumulator
-0x0c JZ - jump zero: jumps to the address in the accumulator iff the zero flag is set
-0x0d JN - jump negative: jumps to the address in the accumulator iff the negative flag is set
-0x0e JC - jump carry: jumps to the address in the accumulator iff the carry flag is set
-0x0f JO - jump overflow: jumps to the address in the accumulator iff the overflow flag is set
-0x10 LDIP - load instruction pointer: loads the address of the current instruction into the accumulator
-0x11 HLT - halt: halts the CPU
+0x00 NOP              - 2 - no operation: does nothing
+0x01 LOAD operand     - 4 - load: loads the operand into the accumulator
+0x02 STOR [operand]   - 5 - store: stores the contents of the accumulator into the memory address specified by the operand
+0x03 STOR [[operand]] - 6 - store: stores the contents of the accumulator into the memory address specified by the memory address that's specified by the operand
+0x04 DREF             - 4 - dereference: replaces the contents of the accumulator with the contents of the memory slot specified by the value of the accumulator
+0x05 UOUT             - 3 - unsigned out: prints the contents of the accumulator as an unsigned integer
+0x06 SOUT             - 3 - signed out: prints the contents of the accumulator as a signed integer
+0x07 ADD operand      - 5 - add: adds the operand to the accumulator and sets the four flags appropriately
+0x08 ADD [operand]    - 6 - add: adds the value at the memory address specified by the operand to the accumulator and sets the four flags appropriately
+0x09 SUB operand      - 5 - subtract: subtracts the operand from the accumulator and sets the four flags appropriately
+0x0a SUB [operand]    - 6 - subtract: subtracts the value at the memory address specified by the operand from the accumulator and sets the four flags appropriately
+0x0b JMP              - 2 - jump: unconditionally jumps to the address in the accumulator
+0x0c JZ               - 2 - jump zero: jumps to the address in the accumulator iff the zero flag is set
+0x0d JN               - 2 - jump negative: jumps to the address in the accumulator iff the negative flag is set
+0x0e JC               - 2 - jump carry: jumps to the address in the accumulator iff the carry flag is set
+0x0f JO               - 2 - jump overflow: jumps to the address in the accumulator iff the overflow flag is set
+0x10 LDIP             - 2 - load instruction pointer: loads the address of the next instruction into the accumulator
+0x11 HLT              - 1 - halt: halts the CPU
 
 0x11 to 0xff NOP - unused opcodes that currently do nothing
 
@@ -233,7 +233,7 @@ halt:
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	).map({it.toByte()}).toByteArray()
-	var instructionsExecuted = 0
+	var clockCycles = 0
 	var instructionPointer: Byte = 0
 	var accumulator: Byte = 0
 	var flags = hashMapOf(
@@ -264,15 +264,42 @@ halt:
 	}
 	
 	while (true) {
-		when (RAM[instructionPointer.toUInt()]) {
-			0x00.toByte() -> {} // do nothing. I'm including this so it's an official NOP rather than just a missing entry
-			0x01.toByte() -> accumulator = RAM[(++instructionPointer).toUInt()]
-			0x02.toByte() -> RAM[RAM[(++instructionPointer).toUInt()].toUInt()] = accumulator
-			0x03.toByte() -> RAM[RAM[RAM[(++instructionPointer).toUInt()].toUInt()].toUInt()] = accumulator
-			0x04.toByte() -> accumulator = RAM[accumulator.toUInt()]
-			0x05.toByte() -> println(accumulator.toUInt())
-			0x06.toByte() -> println(accumulator.toInt())
-			0x07.toByte() -> ALUOperation(
+		var instruction = RAM[instructionPointer.toUInt()].toUInt()
+		
+		if (instruction >= 18) {
+			return println("Invalid instruction \"$instruction\" at RAM position \"${instructionPointer.toString(16)}\"")
+		}
+		
+		clockCycles += arrayOf(
+			2,
+			4,
+			5,
+			6,
+			4,
+			3,
+			3,
+			5,
+			6,
+			5,
+			6,
+			2,
+			2,
+			2,
+			2,
+			2,
+			2,
+			1
+		)[instruction]
+
+		when (instruction) {
+			0x00 -> {} // do nothing. I'm including this so it's an official NOP rather than just a missing entry
+			0x01 -> accumulator = RAM[(++instructionPointer).toUInt()]
+			0x02 -> RAM[RAM[(++instructionPointer).toUInt()].toUInt()] = accumulator
+			0x03 -> RAM[RAM[RAM[(++instructionPointer).toUInt()].toUInt()].toUInt()] = accumulator
+			0x04 -> accumulator = RAM[accumulator.toUInt()]
+			0x05 -> println(accumulator.toUInt())
+			0x06 -> println(accumulator.toInt())
+			0x07 -> ALUOperation(
 				false,
 				{operand1: Byte, operand2: Byte -> (operand1 + operand2).toByte()},
 				{operand1: Byte, operand2: Byte, result: Byte -> 
@@ -282,7 +309,7 @@ halt:
 					(operand1 < 0.toByte()) == (operand2 < 0.toByte()) && (operand1 < 0.toByte()) != (result < 0.toByte())
 				}
 			)
-			0x08.toByte() -> ALUOperation(
+			0x08 -> ALUOperation(
 				true,
 				{operand1: Byte, operand2: Byte -> (operand1 + operand2).toByte()},
 				{operand1: Byte, operand2: Byte, result: Byte -> 
@@ -292,37 +319,35 @@ halt:
 					(operand1 < 0.toByte()) == (operand2 < 0.toByte()) && (operand1 < 0.toByte()) != (result < 0.toByte())
 				}
 			)
-			0x09.toByte() -> ALUOperation(
+			0x09 -> ALUOperation(
 				false,
 				{operand1: Byte, operand2: Byte -> (operand1 - operand2).toByte()},
-				{operand1: Byte, operand2: Byte, result: Byte -> 
+				{operand1: Byte, operand2: Byte, _: Byte -> 
 					operand1.toUInt() < operand2.toUInt()
 				},
 				{operand1: Byte, operand2: Byte, result: Byte ->
 					(operand1 < 0.toByte()) != (operand2 < 0.toByte()) && (operand1 < 0.toByte()) != (result < 0.toByte())
 				}
 			)
-			0x0a.toByte() -> ALUOperation(
+			0x0a -> ALUOperation(
 				true,
 				{operand1: Byte, operand2: Byte -> (operand1 - operand2).toByte()},
-				{operand1: Byte, operand2: Byte, result: Byte -> 
+				{operand1: Byte, operand2: Byte, _: Byte -> 
 					operand1.toUInt() < operand2.toUInt()
 				},
 				{operand1: Byte, operand2: Byte, result: Byte ->
 					(operand1 < 0.toByte()) != (operand2 < 0.toByte()) && (operand1 < 0.toByte()) != (result < 0.toByte())
 				}
 			)
-			0x0b.toByte() -> instructionPointer = (accumulator - 1.toByte()).toByte()
-			0x0c.toByte() -> if (flags["zero"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
-			0x0d.toByte() -> if (flags["negative"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
-			0x0e.toByte() -> if (flags["carry"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
-			0x0f.toByte() -> if (flags["overflow"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
-			0x10.toByte() -> accumulator = instructionPointer
-			0x11.toByte() -> return println("\nInstructions executed before halting: " + instructionsExecuted)
+			0x0b -> instructionPointer = (accumulator - 1.toByte()).toByte()
+			0x0c -> if (flags["zero"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
+			0x0d -> if (flags["negative"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
+			0x0e -> if (flags["carry"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
+			0x0f -> if (flags["overflow"]!!) instructionPointer = (accumulator - 1.toByte()).toByte()
+			0x10 -> accumulator = instructionPointer
+			0x11 -> return println("\nNumber of clock cycles before halting: " + clockCycles)
 		}
 		
 		instructionPointer++
-		instructionsExecuted += 1
 	}
 }
-
