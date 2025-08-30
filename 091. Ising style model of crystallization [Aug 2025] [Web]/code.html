@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Page Title</title>
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+in vec2 coordinates;
+
+out vec2 texCoords;
+
+void main() {
+	gl_Position = vec4(coordinates, 0.0, 1.0);
+	texCoords = coordinates * 0.5 + 0.5;
+}
+		</script>
+		<script id="initFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+uniform highp float random;
+
+out vec4 FragColor;
+
+float hash13(vec3 p3) {
+	p3  = fract(p3 * .1031);
+    p3 += dot(p3, p3.zyx + 31.32);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+float rand(vec2 v) {
+	return hash13(vec3(v * texSize, random));
+}
+
+void main() {
+	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+	
+	if (texCoords.x < 0.3 || texCoords.x > 0.7 || texCoords.y < 0.3 || texCoords.y > 0.7) {
+		color = vec4(rand(texCoords), 0.0, 0.0, 0.0);
+	} else {
+		color = vec4(0.2);
+	}
+	
+	FragColor = color;
+}
+		</script>
+		<script id="compFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+uniform float random;
+uniform int iteration;
+
+out vec4 FragColor;
+
+float hash13(vec3 p3) {
+	p3  = fract(p3 * .1031);
+    p3 += dot(p3, p3.zyx + 31.32);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+float rand(vec2 v) {
+	return hash13(vec3(v * texSize, random));
+}
+
+vec4 getPixel(vec2 coords) {
+	float pixelSize = 1.0 / texSize;
+	vec2 pixelCoords = pixelSize * coords + texCoords;
+	return texture(sampler, pixelCoords);
+}
+
+float temperature = 0.5; // melting point around 1.04 or 1.05 or so
+
+void main() {
+	float pixel1 = getPixel(vec2( 1.0,  0.0)).x;
+	float pixel2 = getPixel(vec2( 0.0,  1.0)).x;
+	float pixel3 = getPixel(vec2(-1.0,  0.0)).x;
+	float pixel4 = getPixel(vec2( 0.0, -1.0)).x;
+
+	float exponent = exp(1.0 / temperature);
+
+	float probability1 = 0.0;
+	float probability2 = 0.0;
+	float probability3 = 0.0;
+	float probability4 = 0.0;
+
+	probability1 = exponent;
+
+	if (pixel2 == pixel1) {
+		probability1 *= exponent;
+	} else {
+		probability2 = exponent;
+	}
+
+	if (pixel3 == pixel1) {
+		probability1 *= exponent;
+	} else if (pixel3 == pixel2) {
+		probability2 *= exponent;
+	} else {
+		probability3 = exponent;
+	}
+
+	if (pixel4 == pixel1) {
+		probability1 *= exponent;
+	} else if (pixel4 == pixel2) {
+		probability2 *= exponent;
+	} else if (pixel4 == pixel3) {
+		probability3 *= exponent;
+	} else {
+		probability4 = exponent;
+	}
+
+	float totalProbability = probability1 + probability2 + probability3 + probability4 + 1.0;
+
+	probability1 /= totalProbability;
+	probability2 /= totalProbability;
+	probability3 /= totalProbability;
+	probability4 /= totalProbability;
+
+	vec4 color;
+
+	float random = rand(texCoords);
+
+	if (random < probability1) {
+		color = vec4(pixel1, vec3(0.0));
+	} else if (random < probability1 + probability2) {
+		color = vec4(pixel2, vec3(0.0));
+	} else if (random < probability1 + probability2 + probability3) {
+		color = vec4(pixel3, vec3(0.0));
+	} else if (random < probability1 + probability2 + probability3 + probability4) {
+		color = vec4(pixel4, vec3(0.0));
+	} else {
+		color = vec4(hash13(vec3(texCoords, random + 1.0)), vec3(0.0));
+	}
+
+	vec2 a = fract(texCoords * texSize * 0.5);
+
+	if (((a.x > 0.5 && a.y > 0.5) || (a.x < 0.5 && a.y < 0.5)) ^^ iteration % 2 == 0) {
+		FragColor = color;
+	} else {
+		FragColor = getPixel(vec2(0.0));
+	}
+}
+		</script>
+		<script id="displayFragShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+
+in highp vec2 texCoords;
+
+uniform float texSize;
+uniform sampler2D sampler;
+
+out vec4 FragColor;
+
+const float PI = 3.14159265359;
+const float TAU = 2.0 * PI;
+
+void main() {
+	float phase = texture(sampler, texCoords).x * TAU;
+
+	FragColor = vec4(sin(phase) * 0.5 + 0.5, sin(phase + TAU / 3.0) * 0.5 + 0.5, sin(phase + 2.0 * TAU / 3.0) * 0.5 + 0.5, 1.0);
+}
+		</script>
+	</head>
+	<body>
+		<div id="container">
+			<span id="speedMeter"></span>
+			<br />
+			<span id="fpsCounter"></span>
+			<br />
+			<span id="throughputMeter"></span>
+		</div>
+		<canvas id="can"></canvas>
+	</body>
+</html>
+
