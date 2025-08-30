@@ -52,6 +52,7 @@ uniform float texSize;
 uniform sampler2D sampler;
 uniform float random;
 uniform int iteration;
+uniform float temperature;
 
 out vec4 FragColor;
 
@@ -71,9 +72,8 @@ vec4 getPixel(vec2 coords) {
 	return texture(sampler, pixelCoords);
 }
 
-// the offsets of 0.000556 and 0.005 are presumably necessary due to imperfections in the RNG functions I'm using
+// the offset of 0.000556 is presumably necessary due to imperfections in the RNG functions I'm using
 float chemicalPotential = 2.000556;
-float temperature = 0.5 / log(1.0 + sqrt(2.0)) + 0.005;
 
 void main() {
 	float potential = chemicalPotential;
@@ -126,6 +126,10 @@ void main() {
 			<span id="throughputMeter"></span>
 		</div>
 		<canvas id="can"></canvas>
+		<div id="container2">
+			<span>Temperature:</span>
+			<input type="range" id="slider" min="0.1" max="0.8" step="0.001" value="0.572">
+		</div>
 	</body>
 </html>
 

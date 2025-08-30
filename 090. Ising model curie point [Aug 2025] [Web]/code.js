@@ -152,6 +152,9 @@ function main() {
 			
 			let iterationUniform = gl.getUniformLocation(compShader, "iteration");
 			gl.uniform1i(iterationUniform, iterationCount++);
+			
+			let temperatureUniform = gl.getUniformLocation(compShader, "temperature");
+			gl.uniform1f(temperatureUniform, Number(document.getElementById("slider").value));
 
 			gl.bindTexture(gl.TEXTURE_2D, oldTex);
 			gl.bindFramebuffer(gl.FRAMEBUFFER, newTexFramebuffer);

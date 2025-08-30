@@ -54,6 +54,7 @@ uniform float texSize;
 uniform sampler2D sampler;
 uniform float random;
 uniform int iteration;
+uniform float temperature; // melting point around 1.04 or 1.05 or so
 
 out vec4 FragColor;
 
@@ -72,8 +73,6 @@ vec4 getPixel(vec2 coords) {
 	vec2 pixelCoords = pixelSize * coords + texCoords;
 	return texture(sampler, pixelCoords);
 }
-
-float temperature = 0.5; // melting point around 1.04 or 1.05 or so
 
 void main() {
 	float pixel1 = getPixel(vec2( 1.0,  0.0)).x;
@@ -175,6 +174,10 @@ void main() {
 			<span id="throughputMeter"></span>
 		</div>
 		<canvas id="can"></canvas>
+		<div id="container2">
+			<span>Temperature:</span>
+			<input type="range" id="slider" min="0.1" max="1.2" step="0.001" value="0.5">
+		</div>
 	</body>
 </html>
 

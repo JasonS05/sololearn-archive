@@ -5,21 +5,26 @@
 
 body {
 	background-color: black;
+	color: white;
+	font-family: Helvetica;
 }
 
 #can {
 	width: 100%;
-	max-height: 100vh;
+	max-height: calc(100vh - 2.5em);
 	object-fit: contain;
 }
 
-span {
+#speedMeter, #fpsCounter, #throughputMeter {
 	font-family: Monospace;
-	color: white;
 }
 
 #container {
 	background-color: black;
 	position: absolute;
+}
+
+#container2 {
+	text-align: center;
 }
 
